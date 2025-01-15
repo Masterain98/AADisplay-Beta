@@ -14,8 +14,8 @@ android {
         applicationId = "io.github.nitsuya.aa.display"
         minSdk = 31
         targetSdk = 33
-        versionCode = 1600
-        versionName = "0.16#12.8+"
+        versionCode = 1601
+        versionName = "0.16.1#12.8+"
         buildConfigField("long", "BUILD_TIME", buildTime.toString())
     }
 

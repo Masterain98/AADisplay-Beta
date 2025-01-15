@@ -1,10 +1,12 @@
 package io.github.nitsuya.aa.display.xposed.hook.aa
 
 import android.content.SharedPreferences
+import android.content.pm.InstallSourceInfo
 import android.graphics.Point
 import android.graphics.Rect
 import android.util.Size
 import com.github.kyuubiran.ezxhelper.utils.findConstructor
+import com.github.kyuubiran.ezxhelper.utils.findMethod
 import com.github.kyuubiran.ezxhelper.utils.hookAfter
 import com.github.kyuubiran.ezxhelper.utils.hookBefore
 import de.robv.android.xposed.callbacks.XC_LoadPackage
@@ -43,7 +45,7 @@ object AaDpiHook: AaHook() {
         }
         displayParamsConstructor = findConstructor(classes[0].className) {
             //int i, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9, float f, int i10, float f2, Size size, Rect rect, Rect rect2, CarDisplayUiFeatures carDisplayUiFeatures, int i11
-            parameterCount == 17
+            parameterCount == 18
             && parameterTypes[0]        == Int::class.javaPrimitiveType      //selectedIndex
             && parameterTypes[1]        == Int::class.javaPrimitiveType      //codecWidth
             && parameterTypes[2]        == Int::class.javaPrimitiveType      //codecHeight
@@ -59,11 +61,13 @@ object AaDpiHook: AaHook() {
             && parameterTypes[12]       == Size::class.java                 //scaledDimensions
             && parameterTypes[13]       == Rect::class.java                 //stableInsets
             && parameterTypes[14]       == Rect::class.java                 //initialInsets
-            && parameterTypes[15].name  == "com.google.android.gms.car.display.CarDisplayUiFeatures"
-            && parameterTypes[16]       == Int::class.javaPrimitiveType      //unknown 65535
+            && parameterTypes[15]       == List::class.java                //Type? cutouts
+            && parameterTypes[16].name  == "com.google.android.gms.car.display.CarDisplayUiFeatures"
+            && parameterTypes[17]       == Int::class.javaPrimitiveType      //unknown 65535
+
         }
         carDisplayConstructor = findConstructor("com.google.android.gms.car.display.CarDisplay") {
-            parameterCount == 8
+            parameterCount == 9
             && parameterTypes[0].name == "com.google.android.gms.car.display.CarDisplayId"
             && parameterTypes[1] == Int::class.javaPrimitiveType    //carDisplayType MAIN-0,CLUSTER-1,AUXILIARY-2,UNKNOWN-3,
             && parameterTypes[2] == Int::class.javaPrimitiveType    //displayDpi
@@ -90,6 +94,8 @@ object AaDpiHook: AaHook() {
                 }
             }
         }
+
+
     }
 
 

@@ -1,5 +1,6 @@
 package io.github.nitsuya.aa.display.xposed.hook.aa
 
+import android.content.ComponentName
 import android.content.ContentResolver
 import android.content.SharedPreferences
 import android.database.Cursor
@@ -10,7 +11,9 @@ import android.nfc.Tag
 import androidx.core.content.edit
 import com.github.kyuubiran.ezxhelper.utils.field
 import com.github.kyuubiran.ezxhelper.utils.findMethod
+import com.github.kyuubiran.ezxhelper.utils.getObject
 import com.github.kyuubiran.ezxhelper.utils.hookAfter
+import com.github.kyuubiran.ezxhelper.utils.hookBefore
 import com.github.kyuubiran.ezxhelper.utils.loadClass
 import com.github.kyuubiran.ezxhelper.utils.putObject
 import de.robv.android.xposed.callbacks.XC_LoadPackage
@@ -22,6 +25,8 @@ import org.luckypray.dexkit.query.FindMethod
 import org.luckypray.dexkit.query.enums.StringMatchType
 import org.luckypray.dexkit.query.matchers.MethodMatcher
 import rikka.core.content.put
+import java.io.ByteArrayOutputStream
+import java.io.PrintWriter
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
@@ -116,17 +121,30 @@ object AaPropsHook: AaHook() {
                 val value = props[key] as String
                 log(tagName, "$key,$value,${defValue}")
                 try {
-                    when (defValue.javaClass) {
+                    when (param.result?.javaClass ?: return@computeIfAbsent null) {
                         String::class.java -> value
                         java.lang.Boolean::class.java, Boolean::class.java -> value.toBoolean()
                         java.lang.Long::class.java, Long::class.java -> value.toLong()
                         Integer::class.java, Int::class.java -> value.toInt()
                         else -> {
-                            log(tagName, "Android Auto[com.google.android.projection.gearhead] config, $key=$value: unsupported type [${defValue.javaClass}]")
+                            val result = param.result
+                            value.split(",").forEach { item ->
+                                val (key, type, value) = item.split("@", limit = 3)
+                                result.putObject(
+                                    key,
+                                    when(type){
+                                        "String" -> value
+                                        "Int" -> value.toInt()
+                                        "Boolean" -> value.toBoolean()
+                                        "Long" -> value.toLong()
+                                        else -> return@forEach
+                                    }
+                                )
+                            }
                             null
                         }
                     }
-                } catch (e: Exception) {
+                } catch (e: Throwable) {
                     log(tagName,"Android Auto[com.google.android.projection.gearhead] config, $key=$value convert exception", e)
                     null
                 }
