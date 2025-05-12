@@ -47,7 +47,7 @@ CNY:
 
 [AOSP](https://source.android.com/)
 
-[YAFM](https://github.com/duzhaokun123/YAFM)
+[YAMF](https://github.com/duzhaokun123/YAMF)
 
 [DexKit](https://github.com/LuckyPray/DexKit)
 

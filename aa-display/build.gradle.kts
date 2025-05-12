@@ -14,8 +14,8 @@ android {
         applicationId = "io.github.nitsuya.aa.display"
         minSdk = 31
         targetSdk = 33
-        versionCode = 1601
-        versionName = "0.16.1#12.8+"
+        versionCode = 1700
+        versionName = "0.17#14.2+"
         buildConfigField("long", "BUILD_TIME", buildTime.toString())
     }
 
@@ -115,7 +115,7 @@ dependencies {
     implementation("dev.rikka.tools.refine:runtime:4.4.0")
     implementation("dev.rikka.hidden:compat:4.3.2")
     compileOnly("dev.rikka.hidden:stub:4.3.2")
-    compileOnly("de.robv.android.xposed:api:82")
+    compileOnly(files("./libs/de.robv.android.xposed_api_82.jar"))
     implementation("com.github.kyuubiran:EzXHelper:1.0.3")
     implementation("com.github.topjohnwu.libsu:core:5.2.0")
     implementation("org.luckypray:dexkit:2.0.0-rc3")

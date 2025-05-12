@@ -174,7 +174,7 @@ object AndroidHook : BaseHook() {
                         }
                     }
                 } catch (e: Exception) {
-                    log(tagName, "activityTaskManagerService_startProcessAsync Hook Exception", e)
+                    log(tagName, "applicationThread_bindApplication Hook Exception", e)
                 }
             }
         }
