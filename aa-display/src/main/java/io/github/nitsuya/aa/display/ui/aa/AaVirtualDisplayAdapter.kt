@@ -450,6 +450,7 @@ class AaVirtualDisplayAdapter(
         override fun onActivityRequestedOrientationChanged(taskId: Int, requestedOrientation: Int) {}
         override fun onTaskRemovalStarted(taskInfo: ActivityManager.RunningTaskInfo?) {}
         override fun onTaskProfileLocked(taskInfo: ActivityManager.RunningTaskInfo?) {}
+        override fun onTaskProfileLocked(taskInfo: ActivityManager.RunningTaskInfo?, userId: Int) {}
         override fun onTaskSnapshotChanged(taskId: Int, snapshot: TaskSnapshot?) {}
         override fun onBackPressedOnTaskRoot(taskInfo: ActivityManager.RunningTaskInfo?) {}
         override fun onTaskDisplayChanged(taskId: Int, newDisplayId: Int) {}
@@ -460,9 +461,13 @@ class AaVirtualDisplayAdapter(
         override fun onActivityRotation(displayId: Int) {}
         override fun onTaskMovedToBack(taskInfo: ActivityManager.RunningTaskInfo?) {}
         override fun onLockTaskModeChanged(mode: Int) {}
+        override fun onTaskSnapshotInvalidated(taskId: Int) {}
+
         //Samsung OneUi
         override fun onActivityDismissingSplitTask(str: String?) {}
         override fun onOccludeChangeNotice(componentName: ComponentName?, z: Boolean) {}
+        override fun onTaskbarIconVisibleChangeRequest(componentName: ComponentName?, z: Boolean) {}
+        //Samsung OneUi 7
         override fun onTaskWindowingModeChanged(i: Int) {}
     }
 }

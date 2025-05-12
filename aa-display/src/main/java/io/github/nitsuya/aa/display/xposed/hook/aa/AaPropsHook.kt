@@ -1,19 +1,14 @@
 package io.github.nitsuya.aa.display.xposed.hook.aa
 
-import android.content.ComponentName
 import android.content.ContentResolver
 import android.content.SharedPreferences
 import android.database.Cursor
 import android.database.MatrixCursor
 import android.database.MergeCursor
 import android.net.Uri
-import android.nfc.Tag
-import androidx.core.content.edit
 import com.github.kyuubiran.ezxhelper.utils.field
 import com.github.kyuubiran.ezxhelper.utils.findMethod
-import com.github.kyuubiran.ezxhelper.utils.getObject
 import com.github.kyuubiran.ezxhelper.utils.hookAfter
-import com.github.kyuubiran.ezxhelper.utils.hookBefore
 import com.github.kyuubiran.ezxhelper.utils.loadClass
 import com.github.kyuubiran.ezxhelper.utils.putObject
 import de.robv.android.xposed.callbacks.XC_LoadPackage
@@ -24,9 +19,6 @@ import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.query.FindMethod
 import org.luckypray.dexkit.query.enums.StringMatchType
 import org.luckypray.dexkit.query.matchers.MethodMatcher
-import rikka.core.content.put
-import java.io.ByteArrayOutputStream
-import java.io.PrintWriter
 import java.lang.reflect.Field
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
@@ -48,16 +40,17 @@ object AaPropsHook: AaHook() {
     override fun loadDexClass(bridge: DexKitBridge, lpparam: XC_LoadPackage.LoadPackageParam) {
         val methodMatcher = MethodMatcher().usingStrings {
             add(
-                "Must call PhenotypeContext.setContext() first",
+                "DirectBoot aware package %s can not access account-scoped flags.",
                 StringMatchType.Equals,
                 false
             )
         }
-        val fieldName = arrayOf("c", "d", "e")
+        val fieldName = arrayOf(/*"a", "b",*/ "e")
         val fieldsInfo = linkedMapOf(
-            fieldName[0] to "java.lang.String", //groupField
-            fieldName[1] to "java.lang.String", //keyField
-            fieldName[2] to "java.lang.Object"  //defValueField
+//            fieldName[0] to "java.lang.String", //groupField
+//            fieldName[1] to "java.lang.String", //keyField
+//            fieldName[2] to "java.lang.Object"  //defValueField
+            fieldName[0] to "java.lang.Object"  //defValueField
         )
         val classes = bridge.findClass {
             searchPackages = listOf("")
@@ -85,13 +78,16 @@ object AaPropsHook: AaHook() {
         }
         val methodData = methodDatas[0]
         val clazz = loadClass(methodData.className)
-        groupField = clazz.field(fieldName[0]) //com.google.android.projection.gearhead
-        keyField = clazz.field(fieldName[1]) //Coolwalk__enabled
-        defValueField = clazz.field(fieldName[2]) //true
+//        groupField = clazz.field(fieldName[0]) //com.google.android.projection.gearhead
+//        keyField = clazz.field(fieldName[1]) //Coolwalk__enabled
+//        defValueField = clazz.field(fieldName[2]) //true
+        groupField = clazz.field("a") //com.google.android.projection.gearhead
+        keyField = clazz.field("b") //Coolwalk__enabled
+        defValueField = clazz.field(fieldName[0]) //true
         log(tagName, "$clazz#${methodData.methodName}#${fieldName.joinToString()}")
         method = findMethod(clazz) {
             name == methodData.methodName
-            && parameterCount == 0
+            && parameterCount == 1
         }
     }
 

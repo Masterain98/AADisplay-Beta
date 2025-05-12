@@ -23,7 +23,12 @@ public interface ITaskStackListener extends IInterface {
     void onTaskDescriptionChanged(ActivityManager.RunningTaskInfo taskInfo) throws RemoteException;
     void onActivityRequestedOrientationChanged(int taskId, int requestedOrientation) throws RemoteException;
     void onTaskRemovalStarted(ActivityManager.RunningTaskInfo taskInfo) throws RemoteException;
+    //*******
+    //A15 Remove
     void onTaskProfileLocked(ActivityManager.RunningTaskInfo taskInfo) throws RemoteException;
+    //A15 Add
+    void onTaskProfileLocked(ActivityManager.RunningTaskInfo taskInfo, int userId) throws RemoteException;
+    //*******
     void onTaskSnapshotChanged(int taskId, TaskSnapshot snapshot) throws RemoteException;
     void onBackPressedOnTaskRoot(ActivityManager.RunningTaskInfo taskInfo) throws RemoteException;
     void onTaskDisplayChanged(int taskId, int newDisplayId) throws RemoteException;
@@ -34,18 +39,20 @@ public interface ITaskStackListener extends IInterface {
     void onActivityRotation(int displayId) throws RemoteException;
     void onTaskMovedToBack(ActivityManager.RunningTaskInfo taskInfo) throws RemoteException;
     void onLockTaskModeChanged(int mode) throws RemoteException;
+    //A15 Add
+    void onTaskSnapshotInvalidated(int taskId) throws RemoteException;
 
     //Samsung OneUi
     void onActivityDismissingSplitTask(String str) throws RemoteException;
-    void onOccludeChangeNotice(ComponentName componentName, boolean z) throws RemoteException;
     void onTaskWindowingModeChanged(int i) throws RemoteException;
+    void onOccludeChangeNotice(ComponentName componentName, boolean z) throws RemoteException;
+    //Samsung OneUi 7
+    void onTaskbarIconVisibleChangeRequest(ComponentName componentName, boolean z) throws RemoteException;
 
     abstract class Stub extends Binder implements ITaskStackListener {
-
         public static IDisplayManager asInterface(IBinder binder) {
             throw new UnsupportedOperationException();
         }
-
         @Override
         public IBinder asBinder() {
             throw new UnsupportedOperationException();
