@@ -14,8 +14,8 @@ android {
         applicationId = "io.github.nitsuya.aa.display"
         minSdk = 31
         targetSdk = 33
-        versionCode = 1700
-        versionName = "0.17#14.2+"
+        versionCode = 1800
+        versionName = "0.18#14.3+"
         buildConfigField("long", "BUILD_TIME", buildTime.toString())
     }
 
@@ -109,7 +109,6 @@ dependencies {
 
     //ViewBindingUtil
     implementation("com.github.matsudamper:ViewBindingUtil:0.1")
-    implementation("androidx.appcompat:appcompat:1.6.1")
 
     compileOnly(project(":lib-stub"))
     implementation("dev.rikka.tools.refine:runtime:4.4.0")
