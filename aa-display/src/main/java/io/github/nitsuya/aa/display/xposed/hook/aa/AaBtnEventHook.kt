@@ -63,42 +63,46 @@ object AaBtnEventHook: AaHook() {
                     && parameterTypes[0] == Context::class.java
                     && parameterTypes[1] == Intent::class.java
                 }.hookBefore { param ->
-                    val intent = param.args[1] as Intent
-                    val eventAction = intent.action
-                    val keyEvent = IntentCompat.getParcelableExtra(intent,"android.intent.extra.KEY_EVENT",  KeyEvent::class.java) ?: return@hookBefore
-                    val keyCode = keyEvent.keyCode
-                    if(enableDefVoiceAssist && keyCode == KeyEvent.KEYCODE_SEARCH) {
-                        return@hookBefore
-                    }
-                    param.abortMethod()
-                    if (needAction != eventAction || isDisposeHookReceive[eventAction] != param.thisObject) {
-                        return@hookBefore
-                    }
-                    log(tagName, "BroadcastReceiver onReceive $clazzName, action:$eventAction, keyCode:$keyCode, keyEvent:$keyEvent")
-                    val longPress = longPressStatusHookReceive.computeIfAbsent(keyCode) { AtomicBoolean(false) }
-                    if (keyEvent.action != KeyEvent.ACTION_DOWN) {
-                        if (longPress.get()) {
-                            longPress.set(false)
+                    try{
+                        val intent = param.args[1] as Intent
+                        val eventAction = intent.action
+                        val keyEvent = IntentCompat.getParcelableExtra(intent,"android.intent.extra.KEY_EVENT",  KeyEvent::class.java) ?: return@hookBefore
+                        val keyCode = keyEvent.keyCode
+                        if(enableDefVoiceAssist && keyCode == KeyEvent.KEYCODE_SEARCH) {
                             return@hookBefore
                         }
-                        log(tagName, "send click $keyCode")
-                        (param.args[0] as Context).sendBroadcast(Intent().apply {
-                            action = AABroadcastConst.ACTION_STEERING_WHEEL_CONTROL
-                            putExtra(AABroadcastConst.EXTRA_ACTION, keyCode)
-                        })
-                    } else if (keyEvent.isLongPress) {
-                        longPress.set(true)
-                        log(tagName, "send long click $keyCode")
-                        (param.args[0] as Context).sendBroadcast(Intent().apply {
-                            action = AABroadcastConst.ACTION_STEERING_WHEEL_CONTROL
-                            putExtra(AABroadcastConst.EXTRA_ACTION, keyCode)
-                            putExtra(AABroadcastConst.EXTRA_TYPE, 1)
-                        })
-                    } else {
-                        if (longPress.get()) {
+                        param.abortMethod()
+                        if (needAction != eventAction || isDisposeHookReceive[eventAction] != param.thisObject) {
                             return@hookBefore
                         }
-                        keyEvent.startTracking();
+                        log(tagName, "BroadcastReceiver onReceive $clazzName, action:$eventAction, keyCode:$keyCode, keyEvent:$keyEvent")
+                        val longPress = longPressStatusHookReceive.computeIfAbsent(keyCode) { AtomicBoolean(false) }
+                        if (keyEvent.action != KeyEvent.ACTION_DOWN) {
+                            if (longPress.get()) {
+                                longPress.set(false)
+                                return@hookBefore
+                            }
+                            log(tagName, "send click $keyCode")
+                            (param.args[0] as Context).sendBroadcast(Intent().apply {
+                                action = AABroadcastConst.ACTION_STEERING_WHEEL_CONTROL
+                                putExtra(AABroadcastConst.EXTRA_ACTION, keyCode)
+                            })
+                        } else if (keyEvent.isLongPress) {
+                            longPress.set(true)
+                            log(tagName, "send long click $keyCode")
+                            (param.args[0] as Context).sendBroadcast(Intent().apply {
+                                action = AABroadcastConst.ACTION_STEERING_WHEEL_CONTROL
+                                putExtra(AABroadcastConst.EXTRA_ACTION, keyCode)
+                                putExtra(AABroadcastConst.EXTRA_TYPE, 1)
+                            })
+                        } else {
+                            if (longPress.get()) {
+                                return@hookBefore
+                            }
+                            keyEvent.startTracking();
+                        }
+                    } catch (e: Throwable){
+                        log(tagName, "onReceive [$clazz] throwable", e)
                     }
                 }
             } catch (e: Throwable) {
