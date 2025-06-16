@@ -46,7 +46,7 @@ object AaPropsHook: AaHook() {
             )
         }
 //        val fieldName = arrayOf(/*"b", "c",*/ "e")
-        val fieldName = arrayOf("b", "c")
+        val fieldName = arrayOf("a", "b")
         val fieldsInfo = linkedMapOf(
             fieldName[0] to "java.lang.String", //groupField
             fieldName[1] to "java.lang.String", //keyField
