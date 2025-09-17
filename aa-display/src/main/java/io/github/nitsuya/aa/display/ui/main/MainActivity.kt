@@ -49,7 +49,7 @@ class MainActivity: BaseActivity<ActivityMainBinding>(ActivityMainBinding::class
                 baseBinding.ivIcon.setImageResource(R.drawable.ic_error_outline_24)
                 baseBinding.tvActive.setText(R.string.not_activated)
                 baseBinding.tvVersion.text = ""
-                val colorError = theme.getAttr(com.google.android.material.R.attr.colorError).data
+                val colorError = android.R.attr.colorError
                 val colorOnError = theme.getAttr(com.google.android.material.R.attr.colorOnError).data
                 baseBinding.mcvStatus.setCardBackgroundColor(colorError)
                 baseBinding.mcvStatus.outlineAmbientShadowColor = colorError

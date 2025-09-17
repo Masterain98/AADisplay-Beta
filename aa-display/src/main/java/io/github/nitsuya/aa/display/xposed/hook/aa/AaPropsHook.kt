@@ -30,7 +30,7 @@ object AaPropsHook: AaHook() {
     private lateinit var method: Method
     private lateinit var groupField: Field
     private lateinit var keyField: Field
-    private lateinit var defValueField: Field
+//    private lateinit var defValueField: Field
 
     override fun isSupportProcess(processName: String): Boolean {
         //return processMain == processName || processProjection == processName || processCar == processName
@@ -40,17 +40,17 @@ object AaPropsHook: AaHook() {
     override fun loadDexClass(bridge: DexKitBridge, lpparam: XC_LoadPackage.LoadPackageParam) {
         val methodMatcher = MethodMatcher().usingStrings {
             add(
-                "DirectBoot aware package %s can not access account-scoped flags.",
+                "Must call PhenotypeContext.setContext() first",
                 StringMatchType.Equals,
                 false
             )
         }
-        val fieldName = arrayOf(/*"a", "b",*/ "e")
+//        val fieldName = arrayOf(/*"b", "c",*/ "e")
+        val fieldName = arrayOf("a", "b")
         val fieldsInfo = linkedMapOf(
-//            fieldName[0] to "java.lang.String", //groupField
-//            fieldName[1] to "java.lang.String", //keyField
+            fieldName[0] to "java.lang.String", //groupField
+            fieldName[1] to "java.lang.String", //keyField
 //            fieldName[2] to "java.lang.Object"  //defValueField
-            fieldName[0] to "java.lang.Object"  //defValueField
         )
         val classes = bridge.findClass {
             searchPackages = listOf("")
@@ -58,7 +58,7 @@ object AaPropsHook: AaHook() {
                 fields {
                     fieldsInfo.forEach { (name, typeName) ->
                         add {
-                            modifiers(Modifier.PRIVATE)
+                            modifiers(Modifier.PUBLIC)
                             type(typeName)
                             name(name)
                         }
@@ -78,16 +78,13 @@ object AaPropsHook: AaHook() {
         }
         val methodData = methodDatas[0]
         val clazz = loadClass(methodData.className)
-//        groupField = clazz.field(fieldName[0]) //com.google.android.projection.gearhead
-//        keyField = clazz.field(fieldName[1]) //Coolwalk__enabled
+        groupField = clazz.field(fieldName[0]) //com.google.android.projection.gearhead
+        keyField = clazz.field(fieldName[1]) //Coolwalk__enabled
 //        defValueField = clazz.field(fieldName[2]) //true
-        groupField = clazz.field("a") //com.google.android.projection.gearhead
-        keyField = clazz.field("b") //Coolwalk__enabled
-        defValueField = clazz.field(fieldName[0]) //true
         log(tagName, "$clazz#${methodData.methodName}#${fieldName.joinToString()}")
         method = findMethod(clazz) {
             name == methodData.methodName
-            && parameterCount == 1
+//            && parameterCount == 1
         }
     }
 
@@ -113,9 +110,10 @@ object AaPropsHook: AaHook() {
                 return@hookAfter
             }
             val value = keyValue.computeIfAbsent(key) {
-                val defValue = defValueField.get(thisObject) ?: return@computeIfAbsent null
+//                val defValue = defValueField.get(thisObject) ?: return@computeIfAbsent null
                 val value = props[key] as String
-                log(tagName, "$key,$value,${defValue}")
+                //log(tagName, "$key,$value,${defValue}")
+                log(tagName, "$key,$value")
                 try {
                     when (param.result?.javaClass ?: return@computeIfAbsent null) {
                         String::class.java -> value

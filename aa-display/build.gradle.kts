@@ -8,18 +8,18 @@ plugins {
 
 android {
     val buildTime = System.currentTimeMillis()
-    compileSdk = 33
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "io.github.nitsuya.aa.display"
         minSdk = 31
-        targetSdk = 33
-        versionCode = 1700
-        versionName = "0.17#14.2+"
+        targetSdk = 36
+        versionCode = 2000
+        versionName = "0.20#15.1+"
         buildConfigField("long", "BUILD_TIME", buildTime.toString())
     }
 
-    packagingOptions {
+    packaging {
         resources.excludes.addAll(
             arrayOf(
                 "META-INF/**",
@@ -82,9 +82,10 @@ android {
         abortOnError = false
     }
 
-    androidResources.additionalParameters("--allow-reserved-package-id", "--package-id", "0x64")
+    androidResources.additionalParameters += mutableListOf("--allow-reserved-package-id", "--package-id", "0x64")
 
     namespace = "io.github.nitsuya.aa.display"
+    buildToolsVersion = "35.0.0"
 }
 
 configurations.all {
@@ -92,29 +93,28 @@ configurations.all {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.10.0")
-    implementation("androidx.activity:activity-ktx:1.7.1")
-    implementation("androidx.fragment:fragment-ktx:1.5.7")
+    implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.activity:activity-ktx:1.11.0")
+    implementation("androidx.fragment:fragment-ktx:1.8.9")
 //    implementation("androidx.appcompat:appcompat:1.6.1")
-    implementation("androidx.media:media:1.6.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.1.4")
-    implementation("androidx.preference:preference-ktx:1.2.0")
-    implementation("com.google.android.material:material:1.8.0")
+    implementation("androidx.media:media:1.7.1")
+    implementation("androidx.constraintlayout:constraintlayout:2.2.1")
+    implementation("androidx.preference:preference-ktx:1.2.1")
+    implementation("com.google.android.material:material:1.13.0")
     implementation("dev.rikka.rikkax.appcompat:appcompat:1.6.1")
     implementation("dev.rikka.rikkax.material:material-preference:2.0.0")
 
     //kotlinx-coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.6.4")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:1.10.2")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
 
     //ViewBindingUtil
     implementation("com.github.matsudamper:ViewBindingUtil:0.1")
-    implementation("androidx.appcompat:appcompat:1.6.1")
 
     compileOnly(project(":lib-stub"))
     implementation("dev.rikka.tools.refine:runtime:4.4.0")
-    implementation("dev.rikka.hidden:compat:4.3.2")
-    compileOnly("dev.rikka.hidden:stub:4.3.2")
+    implementation("dev.rikka.hidden:compat:4.4.0")
+    compileOnly("dev.rikka.hidden:stub:4.4.0")
     compileOnly(files("./libs/de.robv.android.xposed_api_82.jar"))
     implementation("com.github.kyuubiran:EzXHelper:1.0.3")
     implementation("com.github.topjohnwu.libsu:core:5.2.0")
@@ -123,13 +123,13 @@ dependencies {
     implementation(files("./libs/aauto.aar"))
 
     //lifecycle
-    val lifecycleVersion = "2.6.1"
+    val lifecycleVersion = "2.9.3"
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycleVersion")
     implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycleVersion")
     implementation("androidx.lifecycle:lifecycle-common-java8:$lifecycleVersion")
 
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.3")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.4.0")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
 
 }

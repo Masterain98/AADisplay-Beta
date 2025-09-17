@@ -43,7 +43,7 @@ object AaDpiHook: AaHook() {
         if (classes.isEmpty() || classes.size > 1) {
             throw NoSuchMethodException("AaDpiHook: not found DisplayParams class：${classes.size}")
         }
-        displayParamsConstructor = findConstructor(classes[0].className) {
+        displayParamsConstructor = findConstructor(classes[0].name) {
             //int i, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9, float f, int i10, float f2, Size size, Rect rect, Rect rect2, CarDisplayUiFeatures carDisplayUiFeatures, int i11
             parameterCount == 18
             && parameterTypes[0]        == Int::class.javaPrimitiveType      //selectedIndex

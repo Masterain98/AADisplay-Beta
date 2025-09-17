@@ -358,7 +358,7 @@ class CoreManagerService private constructor(): ICoreManager.Stub() {
     }
 
     override fun toast(msg: String){
-        runIO {
+        runMain {
             TipUtil.showToast(msg)
         }
     }

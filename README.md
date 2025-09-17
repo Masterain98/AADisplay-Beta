@@ -39,7 +39,7 @@ CNY:
 - [Eclair234](https://github.com/Eclair234) 350
 - 守望先锋真难玩(某安) 50
 - 狐仙(某Q) 25
-- 匿名 20
+- 匿名 20+50
 
 ## Thanks
 
