@@ -76,18 +76,17 @@ object AaUiHook: AaHook() {
         if (classes.isEmpty() || classes.size > 1) {
             throw NoSuchMethodException("AaUiHook: not found LayoutInfo class：${classes.size}")
         }
-        layoutInfoConstructor = findConstructor(classes[0].className) {
-            //int i, int i2, int i3, int i4, int i5, boolean z, boolean z2, jby jbyVar, boolean z3
-            parameterCount == 9
+        layoutInfoConstructor = findConstructor(classes[0].name) {
+            //int i, int i2, int i3, int i4, boolean z, boolean z2, jby jbyVar, boolean z3
+            parameterCount == 8
             && parameterTypes[0] == Int::class.javaPrimitiveType       //layoutResourceId
             && parameterTypes[1] == Int::class.javaPrimitiveType       //displayWidthDp
             && parameterTypes[2] == Int::class.javaPrimitiveType       //displayHeightDp
-            && parameterTypes[3] == Int::class.javaPrimitiveType       //pillarWidth
-            && parameterTypes[4] == Int::class.javaPrimitiveType       //layoutType
-            && parameterTypes[5] == Boolean::class.javaPrimitiveType   //isRightHandDrive
-            && parameterTypes[6] == Boolean::class.javaPrimitiveType   //hasVerticalRail
-            //&& parameterTypes[7] == Object                           //carDisplayUiInfo
-            && parameterTypes[8] == Boolean::class.javaPrimitiveType   //isDriverAlignedDashboard
+            && parameterTypes[3] == Int::class.javaPrimitiveType       //layoutType
+            && parameterTypes[4] == Boolean::class.javaPrimitiveType   //isRightHandDrive
+            && parameterTypes[5] == Boolean::class.javaPrimitiveType   //hasVerticalRail
+            //&& parameterTypes[6] == Object                           //carDisplayUiInfo
+            && parameterTypes[7] == Boolean::class.javaPrimitiveType   //isDriverAlignedDashboard
         }
 
         try{
@@ -115,9 +114,12 @@ object AaUiHook: AaHook() {
 
         assert(resLayoutLeftResourceId != 0) { "resLayoutLeftResourceId not fund" }
         assert(resLayoutRightResourceId != 0) { "resLayoutRightResourceId not fund" }
+
+
     }
 
     override fun hook(config: SharedPreferences, lpparam: XC_LoadPackage.LoadPackageParam) {
+        log(tagName,  "AaUiHook: ~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         hookBaseClick()
         hookLayout()
         hookFacetBar(config)
@@ -140,13 +142,13 @@ object AaUiHook: AaHook() {
     private fun hookLayout() {
         layoutInfoConstructor.hookAfter { param -> log(tagName, param.thisObject.toString()) }
         layoutInfoConstructor.hookBefore { param ->
-            when(param.args[4] as Int){ //layoutType
+            when(param.args[3] as Int){ //layoutType
                 8,9,10 -> return@hookBefore;
             }
-            var isRightHandDrive = param.args[5] as Boolean // isRightHandDrive left false, right:true
+            var isRightHandDrive = param.args[4] as Boolean // isRightHandDrive left false, right:true
             param.args[0] = if(isRightHandDrive) resLayoutRightResourceId else resLayoutLeftResourceId
-            param.args[4] = if(isRightHandDrive) 4 else 3//layoutType left:3, right:4
-            param.args[6] = true //hasVerticalRail
+            param.args[3] = if(isRightHandDrive) 4 else 3//layoutType left:3, right:4
+            param.args[5] = true //hasVerticalRail
         }
     }
 

@@ -191,7 +191,6 @@ class AaVirtualDisplayAdapter(
     }
 
     fun addMirror(surfaceControl: SurfaceControl){
-        if(surfaceControl == null) return
         val sc = SurfaceControl::class.java.newInstance(args(), argTypes()) as SurfaceControl
         try{
             if(!Instances.iWindowManager.mirrorDisplay(mDisplayId, sc)){
@@ -224,7 +223,6 @@ class AaVirtualDisplayAdapter(
     }
 
     fun removeMirror(surfaceControl: SurfaceControl){
-        if(surfaceControl == null) return
         mSurfaceControls.remove(surfaceControl)?.also {sc ->
             mTransaction.apply {
                 invokeMethod("remove", args(sc), argTypes(SurfaceControl::class.java))
