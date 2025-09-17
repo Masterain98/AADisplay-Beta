@@ -11,7 +11,7 @@
         <item name="materialSwitchStyle">@style/Widget.Material3.CompoundButton.MaterialSwitch</item>
     </style>
 
-    <style name="Theme.AADisplay.Window" parent="Theme.Material3.DynamicColors.Light" />
+    <style name="Theme.AADisplay.Window" parent="Theme.Material3.DynamicColors.DayNight" />
 
     <style name="DeviceInfoDialogLabel">
         <item name="android:textAlignment">viewStart</item>
