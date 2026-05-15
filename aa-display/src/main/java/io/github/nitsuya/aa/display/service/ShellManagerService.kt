@@ -6,7 +6,6 @@ import android.content.SharedPreferences
 import android.os.IBinder
 import com.topjohnwu.superuser.Shell
 import io.github.nitsuya.aa.display.util.AADisplayConfig
-import io.github.nitsuya.aa.display.xposed.IShellManager
 
 class ShellManagerService: Service() {
     private lateinit var config: SharedPreferences

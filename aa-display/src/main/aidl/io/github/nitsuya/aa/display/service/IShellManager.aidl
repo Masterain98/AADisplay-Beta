@@ -1,4 +1,4 @@
-package io.github.nitsuya.aa.display.xposed;
+package io.github.nitsuya.aa.display.service;
 
 interface IShellManager {
     boolean createVirtualDisplayBefore();
