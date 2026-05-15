@@ -32,6 +32,25 @@ AADisplay is an Xposed / LSPosed module that lets Android Auto display (mirror) 
 
 For build instructions and full details, please refer to the original project: [`Nitsuya/AADisplay`](https://github.com/Nitsuya/AADisplay).
 
+## AI-driven Development
+
+This repository is set up for [Claude Code](https://claude.com/claude-code)-driven development. See [CLAUDE.md](CLAUDE.md) for the project map, [aa-display/CLAUDE.md](aa-display/CLAUDE.md) for module details, and `.claude/` for project slash commands and agents:
+
+| Slash command | Purpose |
+|---|---|
+| `/dev-setup` | One-time: pair Wireless ADB + verify DHU path (replaces the "drive to the car to test" loop) |
+| `/dev-loop [hook]` | Per-iteration: build → wireless install → restart AA → start DHU → give logcat command |
+| `/aa-upgrade <version>` | Diagnose & fix Hook breakage on a new AA release |
+| `/build-debug` | Build debug APK with common-failure hints |
+| `/sync-upstream` | Pull commits from upstream `Nitsuya/AADisplay` |
+| `/hook-locate <symbol>` | Find which existing Hook covers a class / method / string |
+| `/release` | Build a signed release APK with pre-flight checks |
+
+| Agent | When to call |
+|---|---|
+| `aa-version-bumper` | AA version compatibility work |
+| `xposed-reviewer` | Safety review of any Hook change before merge |
+
 ## License
 
 Same license as the upstream project. See `LICENSE` for details.
