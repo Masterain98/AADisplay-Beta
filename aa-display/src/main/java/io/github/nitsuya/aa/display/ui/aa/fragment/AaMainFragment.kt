@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.*
 import android.graphics.SurfaceTexture
 import android.os.SystemClock
+import android.util.Log
 import android.support.car.Car
 import android.support.car.CarConnectionCallback
 import android.view.*
@@ -31,6 +32,19 @@ class AaMainFragment : BaseFragment<FragmentAaMainBinding>(FragmentAaMainBinding
     private var displayId: Int = Display.INVALID_DISPLAY
     private var repairDownTime = Long.MIN_VALUE
     private var isForeground = false
+
+    // VD 尺寸单一权威源 = surface 回调。lastApplied* = 最近一次**真的 resize 过**的尺寸
+    // （初始 0，不从 post() 采样预设——避免与 system_server 持久 VD 真实尺寸脱钩误判）。
+    private var lastAppliedW = 0
+    private var lastAppliedH = 0
+
+    private fun displayDpi(): Int = AADisplayConfig.VirtualDisplayDpi.get(config).let {
+        if (it <= 50) resources.displayMetrics.densityDpi else it
+    }
+
+    companion object {
+        private const val TAG = "AADisplay_AaMainFragment"
+    }
     private lateinit var config: SharedPreferences
 
     private var car:Car? = null
@@ -136,13 +150,15 @@ class AaMainFragment : BaseFragment<FragmentAaMainBinding>(FragmentAaMainBinding
     override fun initViews() {
         config = this.requireContext().getSharedPreferences(AADisplayConfig.ConfigName, MediaBrowserServiceCompat.MODE_WORLD_READABLE)
         baseBinding.tvDisplay.post  {
+            // 仅这里建 adapter + 全套 setup（触摸/接收器/Car）。**不**预设 lastApplied，
+            // 把 VD 尺寸的权威来源交给 surface 回调（syncVd）—— post() 采样可能过早/过时，
+            // 不可信。lastApplied 留 0 → 首个 Available 必定把 VD resize 到 surface 真实尺寸，
+            // 纠正持久 VD（system_server 跨重启残留）与 post() 误采样。
+            Log.i(TAG, "onCreateDisplay(init): tvDisplay ${baseBinding.tvDisplay.width}x${baseBinding.tvDisplay.height} dpi=${displayDpi()}")
             CoreApi.onCreateDisplay(
                 baseBinding.tvDisplay.width,
                 baseBinding.tvDisplay.height,
-                AADisplayConfig.VirtualDisplayDpi.get(config).let {
-                    if(it <= 50) resources.displayMetrics.densityDpi
-                    else it
-                },
+                displayDpi(),
                 object : IVirtualDisplayCreatedListener.Stub() {
                     @SuppressLint("ClickableViewAccessibility")
                     override fun onAvailableDisplay(displayId: Int, create: Boolean) {
@@ -212,10 +228,35 @@ class AaMainFragment : BaseFragment<FragmentAaMainBinding>(FragmentAaMainBinding
         car = null
     }
 
-    override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
-        CoreApi.setDisplaySurface(Surface(surface))
+    // VD 尺寸单一权威源 = surface 回调（覆盖 Available 重建 + SizeChanged 两条路径）。
+    // - displayId 未就绪（initViews 全套 onCreateDisplay 还没回调）→ 只 setSurface，不抢着
+    //   建/resize（否则可能用 slim listener 抢先建 VD 导致触摸/接收器没注册）。
+    // - 尺寸 == lastApplied（上次真 resize 过的值）→ 只 setSurface（无冗余 resize）。
+    // - 否则（含首个有效回调 lastApplied=0）→ **必定** resize VD 到 surface 权威尺寸，
+    //   纠正 system_server 持久 VD 残留 / post() 误采样。竖屏：surface 恒为竖向尺寸，
+    //   首回调把 VD 收敛到竖向后即稳定，结果 == 验收的竖屏（VD==竖向 surface，无黑边）。
+    private fun syncVd(surface: SurfaceTexture, width: Int, height: Int) {
+        if (width <= 0 || height <= 0 || displayId == Display.INVALID_DISPLAY) {
+            CoreApi.setDisplaySurface(Surface(surface)); return
+        }
+        if (width == lastAppliedW && height == lastAppliedH) {
+            CoreApi.setDisplaySurface(Surface(surface)); return
+        }
+        Log.i(TAG, "syncVd resize VD -> ${width}x${height} (was ${lastAppliedW}x${lastAppliedH})")
+        lastAppliedW = width
+        lastAppliedH = height
+        // adapter 已存在 → CoreManagerService.onCreateDisplay 走 onReconnected(resize VD)
+        // + DisplayWindow.onResume；slim listener 只重设 surface，不重注册触摸/接收器/Car。
+        CoreApi.onCreateDisplay(width, height, displayDpi(), object : IVirtualDisplayCreatedListener.Stub() {
+            override fun onAvailableDisplay(displayId: Int, create: Boolean) {
+                this@AaMainFragment.displayId = displayId
+                runMain { CoreApi.setDisplaySurface(Surface(surface)) }
+            }
+        })
     }
-    override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
+
+    override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) = syncVd(surface, width, height)
+    override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) = syncVd(surface, width, height)
     override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean  = false
     override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
 }

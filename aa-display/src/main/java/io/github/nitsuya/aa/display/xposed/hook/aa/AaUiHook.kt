@@ -546,17 +546,16 @@ object AaUiHook: AaHook() {
 //            }
             val set = ConstraintSet()
             set.clone(aaFacetBar)
+            // 间距：单一值 spacePx 同时作为「贴边距离」和「图标间距」，左右/上下对称、
+            // 节奏一致。按**投屏 ctx 密度**算 px（非 appContext，不违反 16.7 教训——
+            // ctx 就是投屏 display 的 inflater context）。两分支共用、可单点调。
+            val density = ctx.resources.displayMetrics.density
+            val spacePx = (20 * density).toInt()
             if (bottomBarMode) {
-                // 竖屏底栏：横向行排布。用户要求"最左=主页，最右=通知/时间"：
-                // bottomIds(home/fullscreen/back) 锚**左端**、向右生长（index0=home 贴 parent
-                // START → home 最左）；movedTopIds(status/launcher) 锚**右端**、向左生长
-                // （index0=status 贴 parent END → 状态/时间最右）；TOP+BOTTOM 拉 parent 垂直居中。
-                // 间距：单一值 spacePx 同时作为「贴边距离」和「图标间距」，左右对称、
-                // 节奏一致（用户要求：最左图标距边 == 图标间距 == 右侧间距）。
-                // 按**投屏 ctx 密度**算 px（非 appContext，不违反 16.7 教训——ctx 就是
-                // 投屏 display 的 inflater context）。spacePx 可单点调。
-                val density = ctx.resources.displayMetrics.density
-                val spacePx = (20 * density).toInt()
+                // 竖屏底栏：横向行排布。最左=主页，最右=通知/时间：
+                // bottomIds(home/recent/back) 锚**左端**、向右生长（index0 贴 parent START）；
+                // movedTopIds(status/launcher) 锚**右端**、向左生长（index0 贴 parent END）；
+                // TOP+BOTTOM 拉 parent 垂直居中。spacePx 作贴边+图标间距。
                 bottomIds.forEachIndexed { index, vId ->
                     set.connect(vId, ConstraintSet.START, if(index == 0) ConstraintSet.PARENT_ID else bottomIds[index-1], if(index == 0) ConstraintSet.START else ConstraintSet.END, spacePx)
                     set.connect(vId, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 0)
@@ -568,9 +567,13 @@ object AaUiHook: AaHook() {
                     set.connect(vId, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, 0)
                 }
             } else {
-                // 横屏左竖排栏（现状，与升级前 16.1 一致）
+                // 横屏左竖排栏（与升级前 16.1 一致）。仅给**底部 3 图标**留白：距底边
+                // railGapPx + 三者等距 railGapPx（用户只要调这组）。**顶部 status/launcher
+                // 维持原样 margin=0，不动**。此分支与上面竖屏底栏分支物理隔离 → 不影响竖屏。
+                // 底边距 == 图标间距（同一 railGapPx），按用户要求加大
+                val railGapPx = (16 * density).toInt()
                 bottomIds.forEachIndexed { index, vId ->
-                    set.connect(vId, ConstraintSet.BOTTOM, if(index == 0) ConstraintSet.PARENT_ID else bottomIds[index-1], if(index == 0) ConstraintSet.BOTTOM else ConstraintSet.TOP, 0)
+                    set.connect(vId, ConstraintSet.BOTTOM, if(index == 0) ConstraintSet.PARENT_ID else bottomIds[index-1], if(index == 0) ConstraintSet.BOTTOM else ConstraintSet.TOP, railGapPx)
                     set.connect(vId, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, 0)
                     set.connect(vId, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, 0)
                 }
