@@ -75,7 +75,10 @@ object AaUiHook: AaHook() {
     private var resLayoutLeftCieloResourceId: Int = 0
     private var resLayoutRightCieloResourceId: Int = 0
 
-    private var resLayoutGhFacetBarId: Int = 0
+    // 16.1 旧竖排栏 inflate gh_coolwalk_vertical_facet_bar；16.7 cielo 竖排栏运行时
+    // inflate 横版 gh_coolwalk_facet_bar(LHD)/gh_coolwalk_facet_bar_rhd(RHD)。三者任一
+    // 被 inflate 都注入自定义 facet bar；旧版只命中 vertical 那个，自然兼容。
+    private val resLayoutFacetBarIds = LinkedHashSet<Int>()
     private var resIdStatusBarId: Int = 0
     private var resIdAssistantIconContainerId: Int = 0
     private var resIdAssistantIconId: Int = 0
@@ -118,7 +121,12 @@ object AaUiHook: AaHook() {
             log(tagName,  "AaUiHook: not found CarSystemUiControllerService.a static method", e)
         }
 
-        resLayoutGhFacetBarId = InitFields.appContext.resources.getIdentifier("gh_coolwalk_vertical_facet_bar", "layout", InitFields.appContext.packageName)
+        resLayoutFacetBarIds.clear()
+        for (fbn in arrayOf("gh_coolwalk_vertical_facet_bar", "gh_coolwalk_facet_bar", "gh_coolwalk_facet_bar_rhd")) {
+            val fbid = InitFields.appContext.resources.getIdentifier(fbn, "layout", InitFields.appContext.packageName)
+            if (fbid != 0) resLayoutFacetBarIds.add(fbid) else log(tagName, "AaUiHook: facet bar layout '$fbn' not found, skip")
+        }
+        log(tagName, "AaUiHook: facet bar layout ids resolved=$resLayoutFacetBarIds")
         resIdStatusBarId = getIdByName("status_bar")//android.support.p001v4.app.FragmentContainerView
         resIdAssistantIconContainerId = getIdByName("assistant_icon_container")//com.google.android.apps.auto.components.coolwalk.focusring.FocusInterceptor
         resIdAssistantIconId = getIdByName("assistant_icon")//com.google.android.apps.auto.components.coolwalk.button.CoolwalkButton
@@ -132,7 +140,7 @@ object AaUiHook: AaHook() {
         resLayoutLeftCieloResourceId = InitFields.appContext.resources.getIdentifier("sys_ui_cielo_layout_canonical_vertical_rail_lhd", "layout", InitFields.appContext.packageName)
         resLayoutRightCieloResourceId = InitFields.appContext.resources.getIdentifier("sys_ui_cielo_layout_canonical_vertical_rail_rhd", "layout", InitFields.appContext.packageName)
 
-        assert(resLayoutGhFacetBarId != 0) { "resLayoutGhFacetBarId not fund" }
+        assert(resLayoutFacetBarIds.isNotEmpty()) { "no facet bar layout id resolved" }
         assert(resIdStatusBarId != 0) { "resIdStatusBarId not fund" }
         assert(resIdAssistantIconContainerId != 0) { "resIdAssistantIconContainerId not fund" }
         assert(resIdAssistantIconId != 0) { "resIdAssistantIconId not fund" }
@@ -335,9 +343,11 @@ object AaUiHook: AaHook() {
             && parameterTypes[1] == ViewGroup::class.java // root
             && parameterTypes[2] == Boolean::class.javaPrimitiveType // attachToRoot
         }.hookAfter { param ->
-            if (param.args[0] as Int != resLayoutGhFacetBarId) {
+            if (param.args[0] as Int !in resLayoutFacetBarIds) {
                 return@hookAfter
             }
+            log(tagName, "AaUiHook: facet bar inflate hit id=${param.args[0]}, injecting aa_facet_bar")
+            try {
             val resultViewGroup = param.result as ViewGroup? ?: return@hookAfter //androidx.constraintlayout.widget.ConstraintLayout
             val ctx = (param.thisObject as LayoutInflater).context
             val ctx2 = CommonContextWrapper.createAppCompatContext(ctx)
@@ -346,7 +356,7 @@ object AaUiHook: AaHook() {
                 removeView(resultViewGroup)
             }
             if(closeLauncherDashboard){
-                resultViewGroup.findViewById<View>(resIdLauncherAndDashboardIconId).apply {
+                resultViewGroup.findViewById<View>(resIdLauncherAndDashboardIconId)?.apply {
                     setOnClickFinallyListener {
                         performLongClick()
                     }
@@ -447,12 +457,17 @@ object AaUiHook: AaHook() {
 //                    resIdAssistantIconContainerId
 //                },
 //          arrayListOf(resIdStatusBarId, resIdLauncherAndDashboardIconContainerId, resIdAssistantIconContainerId).forEach { vId ->
+            val movedTopIds = ArrayList<Int>()
             arrayListOf(resIdStatusBarId, resIdLauncherAndDashboardIconContainerId).forEach { vId ->
-                val view = resultViewGroup.findViewById<View>(vId)
+                val view = resultViewGroup.findViewById<View>(vId) ?: run {
+                    log(tagName, "AaUiHook: container id=$vId not in this facet bar variant, skip")
+                    return@forEach
+                }
                 (view.parent as ViewGroup?)?.apply {
                     removeView(view)
                 }
                 aaFacetBar.addView(view)
+                movedTopIds.add(vId)
             }
 //            val statusBarOverlayId = View(ctx).run {
 //                id = View.generateViewId()
@@ -481,7 +496,7 @@ object AaUiHook: AaHook() {
                 set.connect(vId, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, 0)
                 set.connect(vId, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, 0)
             }
-            topIds.forEachIndexed { index, vId ->
+            movedTopIds.forEachIndexed { index, vId ->
                 set.connect(vId, ConstraintSet.TOP, if(index == 0) ConstraintSet.PARENT_ID else topIds[index-1], if(index == 0) ConstraintSet.TOP else ConstraintSet.BOTTOM, 0)
                 set.connect(vId, ConstraintSet.END, ConstraintSet.PARENT_ID, ConstraintSet.END, 0)
                 set.connect(vId, ConstraintSet.START, ConstraintSet.PARENT_ID, ConstraintSet.START, 0)
@@ -494,6 +509,10 @@ object AaUiHook: AaHook() {
             resultViewGroup.visibility = View.GONE
             aaFacetBar.addView(resultViewGroup)
             param.result = aaFacetBar
+            log(tagName, "AaUiHook: aa_facet_bar injected ok (topIds=${movedTopIds.size})")
+            } catch (e: Throwable) {
+                log(tagName, "AaUiHook: aa_facet_bar inject failed for id=${param.args[0]}, keep original", e)
+            }
         }
     }
 
