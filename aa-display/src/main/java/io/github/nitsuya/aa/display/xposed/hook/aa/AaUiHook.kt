@@ -363,6 +363,21 @@ object AaUiHook: AaHook() {
                 }
             }
             val aaFacetBar = layoutInflater.inflate(R.layout.aa_facet_bar, resultViewGroupParent, false) as ConstraintLayout
+            // rail 宽度跟随 AA 自己的 coolwalk_vertical_rail_width（竖屏 80dp / 大屏 92dp，
+            // 横竖屏由 AA 资源限定符自动给值），不硬编码，便于后期横屏适配
+            runCatching {
+                val rwId = InitFields.appContext.resources.getIdentifier("coolwalk_vertical_rail_width", "dimen", InitFields.appContext.packageName)
+                if (rwId != 0) {
+                    val rw = InitFields.appContext.resources.getDimensionPixelSize(rwId)
+                    if (rw > 0) {
+                        aaFacetBar.layoutParams = aaFacetBar.layoutParams?.apply { width = rw }
+                            ?: ViewGroup.LayoutParams(rw, ViewGroup.LayoutParams.MATCH_PARENT)
+                        log(tagName, "AaUiHook: rail width from AA coolwalk_vertical_rail_width = ${rw}px")
+                    }
+                } else {
+                    log(tagName, "AaUiHook: coolwalk_vertical_rail_width dimen not found, keep layout default")
+                }
+            }.onFailure { log(tagName, "AaUiHook: set rail width failed", it) }
             if(autoOpen){
                 aaFacetBar.post {
                     runMain {
