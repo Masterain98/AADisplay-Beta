@@ -559,23 +559,25 @@ object AaUiHook: AaHook() {
 //            }
             val set = ConstraintSet()
             set.clone(aaFacetBar)
-            // 间距：单一值 spacePx 同时作为「贴边距离」和「图标间距」，左右/上下对称、
-            // 节奏一致。按**投屏 ctx 密度**算 px（非 appContext，不违反 16.7 教训——
-            // ctx 就是投屏 display 的 inflater context）。两分支共用、可单点调。
+            // 间距按**投屏 ctx 密度**算 px（非 appContext，不违反 16.7 教训）。竖屏底栏
+            // 分三档（用户调校结果）：左 3 图标间距 gapLeft；右侧 AA 控件间距 gapRight
+            // （AA 控件自带内边距、显疏，故小于左）；两侧贴边 edgePx（= 原间距的一半）。
             val density = ctx.resources.displayMetrics.density
-            val spacePx = (32 * density).toInt()
+            val gapLeft = (40 * density).toInt()    // 左 home/recent/back 之间（用户认可）
+            val gapRight = (20 * density).toInt()   // 右 status/launcher/assistant 之间（用户嫌太远→收紧）
+            val edgePx = (20 * density).toInt()     // 最左/最右图标距屏幕边（原 40 ÷2）
             if (bottomBarMode) {
                 // 竖屏底栏：横向行排布。最左=主页，最右=通知/时间：
                 // bottomIds(home/recent/back) 锚**左端**、向右生长（index0 贴 parent START）；
                 // movedTopIds(status/launcher) 锚**右端**、向左生长（index0 贴 parent END）；
-                // TOP+BOTTOM 拉 parent 垂直居中。spacePx 作贴边+图标间距。
+                // TOP+BOTTOM 拉 parent 垂直居中。
                 bottomIds.forEachIndexed { index, vId ->
-                    set.connect(vId, ConstraintSet.START, if(index == 0) ConstraintSet.PARENT_ID else bottomIds[index-1], if(index == 0) ConstraintSet.START else ConstraintSet.END, spacePx)
+                    set.connect(vId, ConstraintSet.START, if(index == 0) ConstraintSet.PARENT_ID else bottomIds[index-1], if(index == 0) ConstraintSet.START else ConstraintSet.END, if(index == 0) edgePx else gapLeft)
                     set.connect(vId, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 0)
                     set.connect(vId, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, 0)
                 }
                 movedTopIds.forEachIndexed { index, vId ->
-                    set.connect(vId, ConstraintSet.END, if(index == 0) ConstraintSet.PARENT_ID else topIds[index-1], if(index == 0) ConstraintSet.END else ConstraintSet.START, spacePx)
+                    set.connect(vId, ConstraintSet.END, if(index == 0) ConstraintSet.PARENT_ID else topIds[index-1], if(index == 0) ConstraintSet.END else ConstraintSet.START, if(index == 0) edgePx else gapRight)
                     set.connect(vId, ConstraintSet.TOP, ConstraintSet.PARENT_ID, ConstraintSet.TOP, 0)
                     set.connect(vId, ConstraintSet.BOTTOM, ConstraintSet.PARENT_ID, ConstraintSet.BOTTOM, 0)
                 }
