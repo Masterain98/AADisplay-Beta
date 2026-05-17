@@ -550,7 +550,7 @@ object AaUiHook: AaHook() {
             // 节奏一致。按**投屏 ctx 密度**算 px（非 appContext，不违反 16.7 教训——
             // ctx 就是投屏 display 的 inflater context）。两分支共用、可单点调。
             val density = ctx.resources.displayMetrics.density
-            val spacePx = (20 * density).toInt()
+            val spacePx = (32 * density).toInt()
             if (bottomBarMode) {
                 // 竖屏底栏：横向行排布。最左=主页，最右=通知/时间：
                 // bottomIds(home/recent/back) 锚**左端**、向右生长（index0 贴 parent START）；
