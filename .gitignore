@@ -10,5 +10,7 @@ aa-display/build
 .externalNativeBuild
 .cxx
 local.properties
-# Claude Code agent 临时 worktree（隔离用，改动用完即提取，不入仓库）
-.claude/worktrees/
+# Claude Code 本地开发配置与文档：仅本地保留，不入仓库、GitHub 不可见
+/CLAUDE.md
+aa-display/CLAUDE.md
+.claude/
