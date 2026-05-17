@@ -28,7 +28,6 @@ sealed class AADisplayConfig<T>(val key: String) {
     object DestroyVirtualDisplayAfter: ArrayStringConfig("DestroyVirtualDisplayAfter")
     object ComGoogleAndroidGmsCarProps: PropertiesConfig("ComGoogleAndroidGmsCarProps")
     object ComGoogleAndroidProjectionGearheadProps: PropertiesConfig("ComGoogleAndroidProjectionGearheadProps")
-    object LauncherModeProps: PropertiesConfig("LauncherModeProps")
 
 
     abstract class StringConfig(key: String, private val defValue: String? = null): AADisplayConfig<String?>(key){

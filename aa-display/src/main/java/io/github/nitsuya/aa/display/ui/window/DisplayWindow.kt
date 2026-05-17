@@ -196,6 +196,9 @@ class DisplayWindow(
             ibExpand.setOnClickListener {
                 expandController()
             }
+            // 默认折叠：投屏时手机上只留一个小展开按钮，减少悬浮窗对手机屏的占用；
+            // 用户需要时点 ibExpand 展开。与长按 mirror 折叠走同一机制。
+            collapseController()
         }
         mMirrorBinding?.apply {
             arrayOf(vHeightUmbrella1, vHeightUmbrella2).forEach {

@@ -23,6 +23,7 @@
             android:background="?android:attr/selectableItemBackground"
             android:src="@drawable/ic_fullscreen_24"
             android:layout_margin="4dp"
+            android:contentDescription="Expand AADisplay controls"
             android:visibility="gone"/>
 
         <LinearLayout
@@ -39,6 +40,7 @@
                 android:layout_height="@dimen/notification_large_icon_height"
                 android:background="?android:attr/selectableItemBackground"
                 android:src="@drawable/ic_power_settings_new_24"
+                android:contentDescription="Turn off car screen"
                 android:visibility="gone"
                 tools:visibility="visible"/>
 
@@ -49,6 +51,7 @@
                 android:layout_marginTop="4dp"
                 android:background="?android:attr/selectableItemBackground"
                 android:src="@drawable/ic_motion_photos_auto_24"
+                android:contentDescription="On disconnect: delayed exit / suspend toggle"
                 android:visibility="gone"
                 tools:visibility="visible"/>
 
@@ -73,6 +76,7 @@
                 android:layout_marginTop="4dp"
                 android:background="?android:attr/selectableItemBackground"
                 android:src="@drawable/ic_exit_to_app_24"
+                android:contentDescription="Destroy virtual display now"
                 android:visibility="gone"
                 tools:visibility="visible"/>
 
@@ -83,6 +87,7 @@
                 android:layout_marginTop="4dp"
                 android:background="?android:attr/selectableItemBackground"
                 android:src="@drawable/ic_monitor_24"
+                android:contentDescription="Mirror car screen on phone"
                 android:visibility="gone"
                 tools:visibility="visible"/>
 
