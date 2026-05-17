@@ -120,23 +120,40 @@
 
     <PreferenceCategory
         app:key="CategoryAndroidAuto"
-        app:title="Android Auto Internals (advanced)"
-        app:summary="Override Android Auto's internal Phenotype flags / system properties. One key=value per line. For power users — wrong values can break projection."
+        app:title="Advanced (optional)"
+        app:summary="Inject extra system properties into Android Auto's processes (one &quot;name=value&quot; per line). Leave blank unless a guide tells you to set something — wrong values can break projection."
         app:iconSpaceReserved="false">
 
         <EditTextPreference
             android:inputType="textMultiLine"
             app:key="ComGoogleAndroidProjectionGearheadProps"
-            app:title="gearhead process — flags / props"
+            app:title="Android Auto app properties"
             app:summary="Injected into com.google.android.projection.gearhead"
             app:iconSpaceReserved="false"/>
 
         <EditTextPreference
             android:inputType="textMultiLine"
             app:key="ComGoogleAndroidGmsCarProps"
-            app:title="gms.car process — flags / props"
+            app:title="Play Services Car properties"
             app:summary="Injected into com.google.android.gms.car"
             app:iconSpaceReserved="false"/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:key="CategoryAbout"
+        app:title="About"
+        app:iconSpaceReserved="false">
+
+        <Preference
+            app:key="GithubLink"
+            app:title="Source code &amp; updates"
+            app:summary="github.com/bikekoala/AADisplay-Beta"
+            app:iconSpaceReserved="false">
+            <intent
+                android:action="android.intent.action.VIEW"
+                android:data="https://github.com/bikekoala/AADisplay-Beta"/>
+        </Preference>
 
     </PreferenceCategory>
 
