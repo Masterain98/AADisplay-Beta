@@ -414,7 +414,6 @@ object AaUiHook: AaHook() {
     }
 
     private fun hookFacetBar(config: SharedPreferences) {
-        val enableDefVoiceAssist = AADisplayConfig.VoiceAssistShell.get(config).isNullOrBlank()
         val closeLauncherDashboard = AADisplayConfig.CloseLauncherDashboard.get(config)
         val autoOpen = AADisplayConfig.AutoOpen.get(config)
         findMethod(LayoutInflater::class.java) {
