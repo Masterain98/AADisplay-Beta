@@ -414,6 +414,8 @@ object AaUiHook: AaHook() {
     }
 
     private fun hookFacetBar(config: SharedPreferences) {
+        // VoiceAssistShell 为空 = 用 AA 默认助手；非空 = 操作栏助手图标点击改跑用户 root shell
+        val enableDefVoiceAssist = AADisplayConfig.VoiceAssistShell.get(config).isNullOrBlank()
         val closeLauncherDashboard = AADisplayConfig.CloseLauncherDashboard.get(config)
         val autoOpen = AADisplayConfig.AutoOpen.get(config)
         findMethod(LayoutInflater::class.java) {
@@ -477,7 +479,8 @@ object AaUiHook: AaHook() {
             }
             val topIds = arrayListOf(
                 resIdStatusBarId,
-                resIdLauncherAndDashboardIconContainerId
+                resIdLauncherAndDashboardIconContainerId,
+                resIdAssistantIconContainerId
             )
             val bottomIds = arrayListOf(
                 createBtn(R.drawable.ic_sysbar_home){
@@ -512,7 +515,7 @@ object AaUiHook: AaHook() {
                 },
             )
             val movedTopIds = ArrayList<Int>()
-            arrayListOf(resIdStatusBarId, resIdLauncherAndDashboardIconContainerId).forEach { vId ->
+            topIds.forEach { vId ->
                 val view = resultViewGroup.findViewById<View>(vId) ?: run {
                     log(tagName, "AaUiHook: container id=$vId not in this facet bar variant, skip")
                     return@forEach
@@ -521,6 +524,17 @@ object AaUiHook: AaHook() {
                     removeView(view)
                 }
                 aaFacetBar.addView(view)
+                // 重新启用操作栏语音助手软图标：VoiceAssistShell 已设 → 点击改发
+                // KEYCODE_SEARCH（→ AaMainFragment.startVoiceAssist 跑用户自定义 root
+                // shell）；未设 → 不覆盖，保留 AA 默认 Google 助手行为。
+                if (vId == resIdAssistantIconContainerId && !enableDefVoiceAssist) {
+                    view.findViewById<View>(resIdAssistantIconId)?.setOnClickFinallyListener {
+                        ctx.sendBroadcast(Intent().apply {
+                            action = AABroadcastConst.ACTION_SCREEN_CONTROL
+                            putExtra(AABroadcastConst.EXTRA_ACTION, KeyEvent.KEYCODE_SEARCH)
+                        })
+                    }
+                }
                 movedTopIds.add(vId)
             }
 //            val statusBarOverlayId = View(ctx).run {
