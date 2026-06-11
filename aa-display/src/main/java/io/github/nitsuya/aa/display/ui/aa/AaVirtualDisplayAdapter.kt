@@ -539,5 +539,7 @@ class AaVirtualDisplayAdapter(
         override fun onTaskbarIconVisibleChangeRequest(componentName: ComponentName?, z: Boolean) {}
         //Samsung OneUi 7
         override fun onTaskWindowingModeChanged(i: Int) {}
+        //Android 16 QPR2
+        override fun onRecentTaskRemovedForAddTask(taskId: Int) {}
     }
 }
