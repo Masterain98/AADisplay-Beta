@@ -47,13 +47,13 @@ android {
     }
     signingConfigs {
         create("release") {
-            val ksPath = System.getenv("ANDROID_KEYSTORE_PATH")
+            val ksPath = System.getenv("ANDROID_KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
             if (ksPath != null) {
                 storeFile = file(ksPath)
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: ""
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
             }
-            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: ""
-            keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
             enableV1Signing = false
             enableV2Signing = false
             enableV3Signing = true

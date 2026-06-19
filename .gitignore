@@ -17,3 +17,5 @@ aa-display/CLAUDE.md
 # Keystore files (signing credentials managed via GitHub Secrets)
 *.jks
 *.keystore
+*.base64
+*.env
