@@ -26,6 +26,28 @@ jobs:
             echo "${key}=${value}" >> "$GITHUB_OUTPUT"
           done < version.conf
 
+      - name: Validate secrets
+        run: |
+          missing=()
+          [ -z "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ] && missing+=("ANDROID_KEYSTORE_BASE64")
+          [ -z "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" ] && missing+=("ANDROID_KEYSTORE_PASSWORD")
+          [ -z "${{ secrets.ANDROID_KEY_ALIAS }}" ]      && missing+=("ANDROID_KEY_ALIAS")
+          [ -z "${{ secrets.ANDROID_KEY_PASSWORD }}" ]    && missing+=("ANDROID_KEY_PASSWORD")
+          if [ ${#missing[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing[*]}"
+            exit 1
+          fi
+          echo "All signing secrets present."
+
+      - name: Check tag does not already exist
+        run: |
+          TAG="v${{ steps.version.outputs.VERSION_NAME }}"
+          if git ls-remote --tags origin "$TAG" | grep -q "$TAG"; then
+            echo "::error::Tag $TAG already exists. Bump VERSION_NAME in version.conf before releasing."
+            exit 1
+          fi
+          echo "Tag $TAG is available."
+
       - name: Setup JDK 17
         uses: actions/setup-java@v5
         with:
