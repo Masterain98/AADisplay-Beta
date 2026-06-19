@@ -1,3 +1,5 @@
+import java.util.zip.ZipFile
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -11,18 +13,23 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "io.github.nitsuya.aa.display"
+        applicationId = "com.aadisplay101.app"
         minSdk = 31
         targetSdk = 36
-        versionCode = 3004  // 设置一个很大的版本号，避免 LSPosed 提示更新
-        versionName = "0.26#16.7+beta"
+        versionCode = 1
+        versionName = "1.0.0-beta"
         buildConfigField("long", "BUILD_TIME", buildTime.toString())
     }
 
     packaging {
         resources.excludes.addAll(
             arrayOf(
-                "META-INF/**",
+                "META-INF/*.kotlin_module",
+                "META-INF/AL2.0",
+                "META-INF/LGPL2.1",
+                "META-INF/LICENSE*",
+                "META-INF/NOTICE*",
+                "META-INF/DEPENDENCIES",
                 "kotlin/**"
             )
         )
@@ -101,6 +108,42 @@ android {
     buildToolsVersion = "35.0.0"
 }
 
+tasks.register("verifyDebugXposedMetadata") {
+    dependsOn("assembleDebug")
+
+    doLast {
+        val apkDir = layout.buildDirectory.dir("outputs/apk/debug").get().asFile
+        val apk = apkDir.listFiles { file ->
+            file.isFile && file.extension.equals("apk", ignoreCase = true)
+        }?.maxByOrNull { it.lastModified() }
+            ?: error("No debug APK found in ${apkDir.absolutePath}")
+
+        val requiredEntries = listOf(
+            "META-INF/xposed/java_init.list",
+            "META-INF/xposed/module.prop",
+            "META-INF/xposed/scope.list",
+        )
+        val entries = mutableSetOf<String>()
+        ZipFile(apk).use { zip ->
+            val zipEntries = zip.entries()
+            while (zipEntries.hasMoreElements()) {
+                entries += zipEntries.nextElement().name
+            }
+        }
+        val missing = requiredEntries.filterNot(entries::contains)
+        check(missing.isEmpty()) {
+            "Missing libxposed metadata in ${apk.name}: ${missing.joinToString()}"
+        }
+        println("Verified libxposed metadata in ${apk.name}: ${requiredEntries.joinToString()}")
+    }
+}
+
+afterEvaluate {
+    tasks.named("assembleDebug").configure {
+        finalizedBy("verifyDebugXposedMetadata")
+    }
+}
+
 configurations.all {
     exclude("androidx.appcompat", "appcompat")
 }
@@ -128,10 +171,12 @@ dependencies {
     implementation("dev.rikka.tools.refine:runtime:4.4.0")
     implementation("dev.rikka.hidden:compat:4.4.0")
     compileOnly("dev.rikka.hidden:stub:4.4.0")
-    compileOnly(files("./libs/de.robv.android.xposed_api_82.jar"))
-    implementation("com.github.kyuubiran:EzXHelper:1.0.3")
+    compileOnly("io.github.libxposed:api:101.0.1")
+    implementation("io.github.libxposed:service:101.0.0") {
+        exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
+    }
     implementation("com.github.topjohnwu.libsu:core:5.2.0")
-    implementation("org.luckypray:dexkit:2.0.0-rc3")
+    implementation("org.luckypray:dexkit:2.2.0")
 //    implementation("com.github.martoreto:aauto-sdk:v4.7")
     implementation(files("./libs/aauto.aar"))
 

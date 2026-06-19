@@ -6,15 +6,12 @@ import android.database.Cursor
 import android.database.MatrixCursor
 import android.database.MergeCursor
 import android.net.Uri
-import com.github.kyuubiran.ezxhelper.utils.field
-import com.github.kyuubiran.ezxhelper.utils.findMethod
-import com.github.kyuubiran.ezxhelper.utils.hookAfter
-import com.github.kyuubiran.ezxhelper.utils.loadClass
-import com.github.kyuubiran.ezxhelper.utils.putObject
-import de.robv.android.xposed.callbacks.XC_LoadPackage
 import io.github.nitsuya.aa.display.util.AADisplayConfig
+import io.github.nitsuya.aa.display.xposed.XposedRuntimeContext
+import io.github.nitsuya.aa.display.xposed.field
 import io.github.nitsuya.aa.display.xposed.hook.AaHook
 import io.github.nitsuya.aa.display.xposed.log
+import io.github.nitsuya.aa.display.xposed.putObject
 import org.luckypray.dexkit.DexKitBridge
 import org.luckypray.dexkit.query.FindMethod
 import org.luckypray.dexkit.query.enums.StringMatchType
@@ -37,7 +34,7 @@ object AaPropsHook: AaHook() {
         return true
     }
 
-    override fun loadDexClass(bridge: DexKitBridge, lpparam: XC_LoadPackage.LoadPackageParam) {
+    override fun loadDexClass(bridge: DexKitBridge, ctx: XposedRuntimeContext) {
         val methodMatcher = MethodMatcher().usingStrings {
             add(
                 "Must call PhenotypeContext.setContext() first",
@@ -53,7 +50,6 @@ object AaPropsHook: AaHook() {
 //            fieldName[2] to "java.lang.Object"  //defValueField
         )
         val classes = bridge.findClass {
-            searchPackages = listOf("")
             matcher {
                 fields {
                     fieldsInfo.forEach { (name, typeName) ->
@@ -72,34 +68,46 @@ object AaPropsHook: AaHook() {
         if (classes.isEmpty() || classes.size > 1) {
             throw NoSuchMethodException("AaPropsHook: not found props class：${classes.size}")
         }
-        val methodDatas = classes[0].getMethods().findMethod(FindMethod().matcher(methodMatcher))
+        val methodDatas = classes[0].methods.findMethod(FindMethod().matcher(methodMatcher))
         if (methodDatas.isEmpty() || methodDatas.size > 1) {
             throw NoSuchMethodException("AaPropsHook: not found props method：${classes.size}")
         }
         val methodData = methodDatas[0]
-        val clazz = loadClass(methodData.className)
+        val clazz = ctx.loadClass(methodData.className)
         groupField = clazz.field(fieldName[0]) //com.google.android.projection.gearhead
         keyField = clazz.field(fieldName[1]) //Coolwalk__enabled
 //        defValueField = clazz.field(fieldName[2]) //true
         log(tagName, "$clazz#${methodData.methodName}#${fieldName.joinToString()}")
-        method = findMethod(clazz) {
+        method = ctx.findMethod(clazz) {
             name == methodData.methodName
 //            && parameterCount == 1
         }
     }
 
-    override fun hook(config: SharedPreferences, lpparam: XC_LoadPackage.LoadPackageParam) {
-        hookComGoogleAndroidProjectionGearheadProps(config, lpparam)
-        hookComGoogleAndroidGmsCarProps(config, lpparam)
+    override fun hook(config: SharedPreferences, ctx: XposedRuntimeContext) {
+        runCatching {
+            hookComGoogleAndroidProjectionGearheadProps(ctx, config)
+        }.onFailure { e ->
+            log(tagName, "[com.google.android.projection.gearhead] config", e)
+        }
+        runCatching {
+            hookComGoogleAndroidGmsCarProps(ctx, config)
+        }.onFailure { e ->
+            log(tagName, "[com.google.android.gms.car] config", e)
+        }
     }
 
-    private fun hookComGoogleAndroidProjectionGearheadProps(config: SharedPreferences?, lpparam: XC_LoadPackage.LoadPackageParam) {
+    private fun hookComGoogleAndroidProjectionGearheadProps(ctx: XposedRuntimeContext, config: SharedPreferences?) {
         val props = AADisplayConfig.ComGoogleAndroidProjectionGearheadProps.get(config) ?: return
         if (props.isEmpty) {
             return
         }
+        if (!::method.isInitialized) {
+            log(tagName, "AaPropsHook: props method unresolved, skip projection props hook")
+            return
+        }
         val keyValue = HashMap<String, Any?>(props.size, 1f)
-        method.hookAfter { param ->
+        ctx.hookAfter(method) { param ->
             val thisObject = param.thisObject
             val group = groupField.get(thisObject)
             if (group != "com.google.android.projection.gearhead") {
@@ -124,7 +132,7 @@ object AaPropsHook: AaHook() {
                             val result = param.result
                             value.split(",").forEach { item ->
                                 val (key, type, value) = item.split("@", limit = 3)
-                                result.putObject(
+                                result!!.putObject(
                                     key,
                                     when(type){
                                         "String" -> value
@@ -149,18 +157,18 @@ object AaPropsHook: AaHook() {
         }
     }
 
-    private fun hookComGoogleAndroidGmsCarProps(config: SharedPreferences?, lpparam: XC_LoadPackage.LoadPackageParam) {
+    private fun hookComGoogleAndroidGmsCarProps(ctx: XposedRuntimeContext, config: SharedPreferences?) {
         val props = AADisplayConfig.ComGoogleAndroidGmsCarProps.get(config) ?: return
         if (props.isEmpty) {
             return
         }
         try {
-            val matrixCursor = MatrixCursor(arrayOf("key", "value"), props.size).apply {
+            fun createPropsCursor() = MatrixCursor(arrayOf("key", "value"), props.size).apply {
                 props.forEach { prop ->
                     addRow(arrayOf(prop.key, prop.value))
                 }
             }
-            findMethod(ContentResolver::class.java) {
+            ctx.hookAfter(ctx.findMethod(ContentResolver::class.java) {
                 name == "query"
                 && parameterCount == 5
                 && parameterTypes[0] == Uri::class.java             // uri
@@ -168,16 +176,16 @@ object AaPropsHook: AaHook() {
                 && parameterTypes[2] == String::class.java          // selection
                 && parameterTypes[3] == Array<String>::class.java   // selectionArgs
                 && parameterTypes[4] == String::class.java          // sortOrder
-            }.hookAfter { param ->
+            }) { param ->
                 val uri = param.args[0] as Uri
                 if (uri.authority != "com.google.android.gms.phenotype") return@hookAfter
                 //log(tagName, "ContentProvider.query: uri: $uri")
                 if (uri.path != "/com.google.android.gms.car") return@hookAfter
                 //log(AaUiHook.tagName, "GmsCarProps-----${lpparam.processName}------")
-                param.result = if (param.result == null) matrixCursor else MergeCursor(
+                param.result = if (param.result == null) createPropsCursor() else MergeCursor(
                     arrayOf(
                         param.result as Cursor,
-                        matrixCursor
+                        createPropsCursor()
                     )
                 )
             }
