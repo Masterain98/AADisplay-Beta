@@ -16,6 +16,8 @@ sealed class AADisplayConfig<T>(val key: String) {
     object HomePackage: StringConfig("HomePackage", "com.ss.squarehome2")
     object AutoOpen: BooleanConfig("AutoOpen", true)
     object VirtualDisplayDpi: IntConfig("VirtualDisplayDpi", 0)
+    object VirtualDisplayWidth: IntConfig("VirtualDisplayWidth", 0)
+    object VirtualDisplayHeight: IntConfig("VirtualDisplayHeight", 0)
     object AndroidAutoDpi: IntConfig("AndroidAutoDpi", 0)
     object DelayDestroyTime: IntConfig("DelayDestroyTime", 180)
     object ScreenOffReplaceLockScreen: BooleanConfig("ScreenOffReplaceLockScreen", false)

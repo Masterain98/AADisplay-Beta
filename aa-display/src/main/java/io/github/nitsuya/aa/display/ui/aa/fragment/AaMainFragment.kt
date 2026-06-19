@@ -41,6 +41,16 @@ class AaMainFragment : BaseFragment<FragmentAaMainBinding>(FragmentAaMainBinding
         if (it <= 50) resources.displayMetrics.densityDpi else it
     }
 
+    private fun resolvedDisplayWidth(surfaceWidth: Int): Int {
+        val custom = AADisplayConfig.VirtualDisplayWidth.get(config)
+        return if (custom > 0) custom else surfaceWidth
+    }
+
+    private fun resolvedDisplayHeight(surfaceHeight: Int): Int {
+        val custom = AADisplayConfig.VirtualDisplayHeight.get(config)
+        return if (custom > 0) custom else surfaceHeight
+    }
+
     companion object {
         private const val TAG = "AADisplay_AaMainFragment"
     }
@@ -153,10 +163,12 @@ class AaMainFragment : BaseFragment<FragmentAaMainBinding>(FragmentAaMainBinding
             // 把 VD 尺寸的权威来源交给 surface 回调（syncVd）—— post() 采样可能过早/过时，
             // 不可信。lastApplied 留 0 → 首个 Available 必定把 VD resize 到 surface 真实尺寸，
             // 纠正持久 VD（system_server 跨重启残留）与 post() 误采样。
-            Log.i(TAG, "onCreateDisplay(init): tvDisplay ${baseBinding.tvDisplay.width}x${baseBinding.tvDisplay.height} dpi=${displayDpi()}")
+            val initW = resolvedDisplayWidth(baseBinding.tvDisplay.width)
+            val initH = resolvedDisplayHeight(baseBinding.tvDisplay.height)
+            Log.i(TAG, "onCreateDisplay(init): tvDisplay ${baseBinding.tvDisplay.width}x${baseBinding.tvDisplay.height} -> virtual ${initW}x${initH} dpi=${displayDpi()}")
             CoreApi.onCreateDisplay(
-                baseBinding.tvDisplay.width,
-                baseBinding.tvDisplay.height,
+                initW,
+                initH,
                 displayDpi(),
                 object : IVirtualDisplayCreatedListener.Stub() {
                     @SuppressLint("ClickableViewAccessibility")
@@ -238,15 +250,17 @@ class AaMainFragment : BaseFragment<FragmentAaMainBinding>(FragmentAaMainBinding
         if (width <= 0 || height <= 0 || displayId == Display.INVALID_DISPLAY) {
             CoreApi.setDisplaySurface(Surface(surface)); return
         }
-        if (width == lastAppliedW && height == lastAppliedH) {
+        val vdW = resolvedDisplayWidth(width)
+        val vdH = resolvedDisplayHeight(height)
+        if (vdW == lastAppliedW && vdH == lastAppliedH) {
             CoreApi.setDisplaySurface(Surface(surface)); return
         }
-        Log.i(TAG, "syncVd resize VD -> ${width}x${height} (was ${lastAppliedW}x${lastAppliedH})")
-        lastAppliedW = width
-        lastAppliedH = height
+        Log.i(TAG, "syncVd resize VD -> ${vdW}x${vdH} (was ${lastAppliedW}x${lastAppliedH})")
+        lastAppliedW = vdW
+        lastAppliedH = vdH
         // adapter 已存在 → CoreManagerService.onCreateDisplay 走 onReconnected(resize VD)
         // + DisplayWindow.onResume；slim listener 只重设 surface，不重注册触摸/接收器/Car。
-        CoreApi.onCreateDisplay(width, height, displayDpi(), object : IVirtualDisplayCreatedListener.Stub() {
+        CoreApi.onCreateDisplay(vdW, vdH, displayDpi(), object : IVirtualDisplayCreatedListener.Stub() {
             override fun onAvailableDisplay(displayId: Int, create: Boolean) {
                 this@AaMainFragment.displayId = displayId
                 runMain { CoreApi.setDisplaySurface(Surface(surface)) }

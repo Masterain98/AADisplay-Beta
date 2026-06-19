@@ -50,6 +50,20 @@
 
         <EditTextPreference
             android:inputType="number"
+            app:key="VirtualDisplayWidth"
+            app:title="Virtual Display Width (0 = auto)"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="false" />
+
+        <EditTextPreference
+            android:inputType="number"
+            app:key="VirtualDisplayHeight"
+            app:title="Virtual Display Height (0 = auto)"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="false" />
+
+        <EditTextPreference
+            android:inputType="number"
             app:defaultValue="180"
             app:key="DelayDestroyTime"
             app:title="Keep Display Alive After Exit (seconds)"
