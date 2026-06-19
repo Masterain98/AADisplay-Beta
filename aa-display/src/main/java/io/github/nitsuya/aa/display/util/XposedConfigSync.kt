@@ -22,9 +22,11 @@ object XposedConfigSync : SharedPreferences.OnSharedPreferenceChangeListener {
         val appContext = context.applicationContext
         val local = appContext.getSharedPreferences(AADisplayConfig.ConfigName, Context.MODE_PRIVATE)
         localPreferences = local
-        if (!listenerRegistered) {
-            local.registerOnSharedPreferenceChangeListener(this)
-            listenerRegistered = true
+        synchronized(this) {
+            if (!listenerRegistered) {
+                local.registerOnSharedPreferenceChangeListener(this)
+                listenerRegistered = true
+            }
         }
 
         runCatching {

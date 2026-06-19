@@ -68,10 +68,10 @@ object AaBtnEventHook: AaHook() {
                                 if(enableDefVoiceAssist && keyCode == KeyEvent.KEYCODE_SEARCH) {
                                     return@hookBefore
                                 }
-                                param.returnEarly(null)
                                 if (needAction != eventAction || isDisposeHookReceive[eventAction] != param.thisObject) {
                                     return@hookBefore
                                 }
+                                param.returnEarly(null)
                                 log(tagName, "BroadcastReceiver onReceive $clazzName, action:$eventAction, keyCode:$keyCode, keyEvent:$keyEvent")
                                 val longPress = longPressStatusHookReceive.computeIfAbsent(keyCode) { AtomicBoolean(false) }
                                 if (keyEvent.action != KeyEvent.ACTION_DOWN) {

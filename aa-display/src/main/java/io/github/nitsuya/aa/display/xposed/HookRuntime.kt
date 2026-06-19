@@ -21,6 +21,7 @@ object HookRuntime {
         private set
 
     fun bindModule(module: XposedModule, processName: String, isSystemServer: Boolean) {
+        if (isLibXposedEntryLoaded) return
         isLibXposedEntryLoaded = true
         this.processName = processName
         this.isSystemServer = isSystemServer

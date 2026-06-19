@@ -21,8 +21,8 @@ class LibXposedInit : XposedModule() {
         )
     }
 
-    private var loadedProcessName: String = "unknown"
-    private var loadedAsSystemServer: Boolean = false
+    @Volatile private var loadedProcessName: String = "unknown"
+    @Volatile private var loadedAsSystemServer: Boolean = false
 
     override fun onModuleLoaded(param: XposedModuleInterface.ModuleLoadedParam) {
         loadedProcessName = param.processName
@@ -63,6 +63,8 @@ class LibXposedInit : XposedModule() {
             }
 
             param.applicationInfo.uid == Process.SYSTEM_UID -> {
+                // "system" scope triggers onModuleLoaded/onSystemServerStarting for system_server hooks.
+                // Per-package hooks for system uid packages are handled in onSystemServerStarting, not here.
                 log(TAG, "skip system uid package=$packageName process=$loadedProcessName")
             }
 
@@ -113,12 +115,14 @@ class LibXposedInit : XposedModule() {
         return loadedProcessName
             .takeIf { it.isNotBlank() && it != "unknown" }
             ?: currentProcessName()
-            ?: param.applicationInfo.processName
+            ?: param.applicationInfo?.processName
             ?: param.packageName
     }
 
     private fun initHooks(ctx: XposedRuntimeContext, vararg hooks: BaseHook) {
         hooks.forEach { hook ->
+            // Fail-fast: mark before init so concurrent lifecycle callbacks skip duplicates.
+            // Failed hooks are not retried — if class discovery fails, retrying is futile.
             if (!HookRuntime.markHookInitialized(ctx, hook.tagName)) {
                 log(TAG, "skip duplicate hook=${hook.tagName} package=${ctx.packageName} process=${ctx.processName}")
                 return@forEach

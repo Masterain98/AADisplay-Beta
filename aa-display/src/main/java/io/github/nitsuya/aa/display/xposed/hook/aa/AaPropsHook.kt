@@ -85,13 +85,25 @@ object AaPropsHook: AaHook() {
     }
 
     override fun hook(config: SharedPreferences, ctx: XposedRuntimeContext) {
-        hookComGoogleAndroidProjectionGearheadProps(ctx, config)
-        hookComGoogleAndroidGmsCarProps(ctx, config)
+        runCatching {
+            hookComGoogleAndroidProjectionGearheadProps(ctx, config)
+        }.onFailure { e ->
+            log(tagName, "[com.google.android.projection.gearhead] config", e)
+        }
+        runCatching {
+            hookComGoogleAndroidGmsCarProps(ctx, config)
+        }.onFailure { e ->
+            log(tagName, "[com.google.android.gms.car] config", e)
+        }
     }
 
     private fun hookComGoogleAndroidProjectionGearheadProps(ctx: XposedRuntimeContext, config: SharedPreferences?) {
         val props = AADisplayConfig.ComGoogleAndroidProjectionGearheadProps.get(config) ?: return
         if (props.isEmpty) {
+            return
+        }
+        if (!::method.isInitialized) {
+            log(tagName, "AaPropsHook: props method unresolved, skip projection props hook")
             return
         }
         val keyValue = HashMap<String, Any?>(props.size, 1f)

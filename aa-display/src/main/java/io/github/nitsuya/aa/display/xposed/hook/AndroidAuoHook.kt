@@ -53,11 +53,14 @@ object AndroidAuoHook : BaseHook() {
             runCatching {
                 val appCtx = ctx.withAppContext(application)
 
-                System.loadLibrary("dexkit")
-                val bridge = DexKitBridge.create(application.applicationInfo.sourceDir)
-                if (bridge == null) {
-                    log(tagName, "DexKitBridge.create() failed")
-                } else {
+                val bridge = runCatching {
+                    System.loadLibrary("dexkit")
+                    DexKitBridge.create(application.applicationInfo.sourceDir)
+                }.onFailure { e ->
+                    log(tagName, "DexKitBridge.create() failed", e)
+                }.getOrNull()
+
+                if (bridge != null) {
                     bridge.use {
                         val measureTimeMillis = measureTimeMillis {
                             hooks.forEach { h ->
@@ -67,12 +70,13 @@ object AndroidAuoHook : BaseHook() {
                         }
                         log(tagName, "$processName load class measure ${measureTimeMillis}ms")
                     }
-                    configProvider.reload()
-                    val configPreferences = configProvider.getPreferences()
-                    hooks.forEach { h ->
-                        runCatching { h.hook(configPreferences, appCtx) }
-                            .onFailure { e -> log(tagName, "${h.tagName} hook failed", e) }
-                    }
+                }
+
+                configProvider.reload()
+                val configPreferences = configProvider.getPreferences()
+                hooks.forEach { h ->
+                    runCatching { h.hook(configPreferences, appCtx) }
+                        .onFailure { e -> log(tagName, "${h.tagName} hook failed", e) }
                 }
             }.onFailure { e ->
                 log(tagName, "callApplicationOnCreate hook failed", e)

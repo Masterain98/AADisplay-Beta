@@ -620,13 +620,14 @@ object AaUiHook: AaHook() {
                 && parameterCount == 1
                 && parameterTypes[0] == View.OnLongClickListener::class.java
             }, XposedInterface.PRIORITY_LOWEST) {
-                if (it.args[0] is FinallyListener) return@hookBefore
+                val listener = it.args[0] as? View.OnLongClickListener ?: return@hookBefore
+                if (listener is FinallyListener) return@hookBefore
                 val view = it.thisObject as View
                 if (!view.hasOnLongClickListeners() || (view.getObjectOrNull("mListenerInfo")?.getObjectOrNull("mOnLongClickListener") is FinallyListener).not()) {
                     return@hookBefore
                 }
-                view.setOnOriLongClickListener(it.args[0] as View.OnLongClickListener)
-                it.result = null
+                view.setOnOriLongClickListener(listener)
+                it.returnEarly(null)
             }
         } catch (e: Throwable) {
             log(tagName, "hook View.setOnLongClickListener", e)
@@ -637,13 +638,14 @@ object AaUiHook: AaHook() {
                 && parameterCount == 1
                 && parameterTypes[0] == View.OnClickListener::class.java
             }, XposedInterface.PRIORITY_LOWEST) {
-                if (it.args[0] is FinallyListener) return@hookBefore
+                val listener = it.args[0] as? View.OnClickListener ?: return@hookBefore
+                if (listener is FinallyListener) return@hookBefore
                 val view = it.thisObject as View
                 if (!view.hasOnClickListeners() || (view.getObjectOrNull("mListenerInfo")?.getObjectOrNull("mOnClickListener") is FinallyListener).not()) {
                     return@hookBefore
                 }
-                view.setOnOriClickListener(it.args[0] as View.OnClickListener)
-                it.result = null
+                view.setOnOriClickListener(listener)
+                it.returnEarly(null)
             }
         } catch (e: Throwable) {
             log(tagName, "hook View.setOnClickListener", e)

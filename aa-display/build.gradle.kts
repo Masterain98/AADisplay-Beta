@@ -138,6 +138,12 @@ tasks.register("verifyDebugXposedMetadata") {
     }
 }
 
+afterEvaluate {
+    tasks.named("assembleDebug").configure {
+        finalizedBy("verifyDebugXposedMetadata")
+    }
+}
+
 configurations.all {
     exclude("androidx.appcompat", "appcompat")
 }

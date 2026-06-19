@@ -50,7 +50,6 @@ object AndroidHook : BaseHook() {
             serviceManagerHooks = addServiceMethods.map { method ->
                 ctx.hookBefore(method) { param ->
                     if (param.args.getOrNull(0) == "package") {
-                        serviceManagerHooks.forEach { it.unhook() }
                         val binder = param.args.getOrNull(1) as? IBinder ?: return@hookBefore
                         val pms = (binder as? IPackageManager)
                             ?: IPackageManager.Stub.asInterface(binder)
@@ -58,6 +57,7 @@ object AndroidHook : BaseHook() {
                         log(tagName, "Got pms: $pms")
                         runCatching {
                             BridgeService.register(ctx, pms)
+                            serviceManagerHooks.forEach { it.unhook() }
                             log(tagName, "Bridge service injected")
                         }.onFailure {
                             log(tagName, "System service crashed", it)
@@ -136,7 +136,9 @@ object AndroidHook : BaseHook() {
                     && parameterTypes[2] == Int::class.javaPrimitiveType
                     && parameterTypes[3] == ActivityInfo::class.java
             }) { param ->
-                if (param.result == false && param.args.getOrNull(2) == CoreManagerService.getDisplayId()) {
+                val targetDisplayId = CoreManagerService.getDisplayId()
+                if (targetDisplayId == Display.INVALID_DISPLAY) return@hookAfter
+                if (param.result == false && param.args.getOrNull(2) == targetDisplayId) {
                     param.result = true
                     log(tagName, "hook isCallerAllowedToLaunchOnDisplay success")
                 }
@@ -156,7 +158,7 @@ object AndroidHook : BaseHook() {
                     // arg[2] is TaskDisplayArea - extract displayId via getDisplayId()
                     val taskDisplayArea = param.args.getOrNull(2) ?: return@hookAfter
                     val displayId = runCatching {
-                        taskDisplayArea.javaClass.getMethod("getDisplayId").invoke(taskDisplayArea) as? Int
+                        taskDisplayArea.invokeMethod("getDisplayId") as? Int
                     }.getOrNull() ?: return@hookAfter
                     if (displayId == targetDisplayId && param.result == false) {
                         param.result = true
