@@ -50,7 +50,6 @@ object AaPropsHook: AaHook() {
 //            fieldName[2] to "java.lang.Object"  //defValueField
         )
         val classes = bridge.findClass {
-            searchPackages = listOf("")
             matcher {
                 fields {
                     fieldsInfo.forEach { (name, typeName) ->
@@ -69,7 +68,7 @@ object AaPropsHook: AaHook() {
         if (classes.isEmpty() || classes.size > 1) {
             throw NoSuchMethodException("AaPropsHook: not found props class：${classes.size}")
         }
-        val methodDatas = classes[0].getMethods().findMethod(FindMethod().matcher(methodMatcher))
+        val methodDatas = classes[0].methods.findMethod(FindMethod().matcher(methodMatcher))
         if (methodDatas.isEmpty() || methodDatas.size > 1) {
             throw NoSuchMethodException("AaPropsHook: not found props method：${classes.size}")
         }
@@ -121,7 +120,7 @@ object AaPropsHook: AaHook() {
                             val result = param.result
                             value.split(",").forEach { item ->
                                 val (key, type, value) = item.split("@", limit = 3)
-                                result.putObject(
+                                result!!.putObject(
                                     key,
                                     when(type){
                                         "String" -> value

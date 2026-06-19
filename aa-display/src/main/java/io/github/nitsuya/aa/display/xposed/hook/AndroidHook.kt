@@ -6,6 +6,7 @@ import android.content.pm.IPackageManager
 import android.content.res.Configuration
 import android.os.Build
 import android.os.IBinder
+import android.view.Display
 import io.github.nitsuya.aa.display.CoreApi
 import io.github.nitsuya.aa.display.IsSystemEnv
 import io.github.nitsuya.aa.display.util.AADisplayConfig
@@ -124,6 +125,8 @@ object AndroidHook : BaseHook() {
         } else {
             "com.android.server.wm.ActivityStackSupervisor"
         }
+
+        // Hook isCallerAllowedToLaunchOnDisplay (pre-Android 17 path)
         runCatching {
             ctx.hookAfter(ctx.findMethod(className) {
                 name == "isCallerAllowedToLaunchOnDisplay"
@@ -140,6 +143,29 @@ object AndroidHook : BaseHook() {
             }
         }.onFailure {
             log(tagName, "$className.isCallerAllowedToLaunchOnDisplay", it)
+        }
+
+        // Hook isCallerAllowedToLaunchOnTaskDisplayArea (Android 17+ path)
+        runCatching {
+            ctx.findAllMethods(className) {
+                name == "isCallerAllowedToLaunchOnTaskDisplayArea"
+            }.forEach { m ->
+                ctx.hookAfter(m) { param ->
+                    val targetDisplayId = CoreManagerService.getDisplayId()
+                    if (targetDisplayId == Display.INVALID_DISPLAY) return@hookAfter
+                    // arg[2] is TaskDisplayArea - extract displayId via getDisplayId()
+                    val taskDisplayArea = param.args.getOrNull(2) ?: return@hookAfter
+                    val displayId = runCatching {
+                        taskDisplayArea.javaClass.getMethod("getDisplayId").invoke(taskDisplayArea) as? Int
+                    }.getOrNull() ?: return@hookAfter
+                    if (displayId == targetDisplayId && param.result == false) {
+                        param.result = true
+                        log(tagName, "hook isCallerAllowedToLaunchOnTaskDisplayArea success (displayId=$displayId)")
+                    }
+                }
+            }
+        }.onFailure {
+            log(tagName, "$className.isCallerAllowedToLaunchOnTaskDisplayArea", it)
         }
     }
 

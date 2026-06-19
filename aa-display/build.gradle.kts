@@ -13,11 +13,11 @@ android {
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "io.github.nitsuya.aa.display"
+        applicationId = "com.aadisplay101.app"
         minSdk = 31
         targetSdk = 36
-        versionCode = 3004  // 设置一个很大的版本号，避免 LSPosed 提示更新
-        versionName = "0.26#16.7+beta"
+        versionCode = 1
+        versionName = "1.0.0-beta"
         buildConfigField("long", "BUILD_TIME", buildTime.toString())
     }
 
@@ -170,7 +170,7 @@ dependencies {
         exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib")
     }
     implementation("com.github.topjohnwu.libsu:core:5.2.0")
-    implementation("org.luckypray:dexkit:2.0.0-rc3")
+    implementation("org.luckypray:dexkit:2.2.0")
 //    implementation("com.github.martoreto:aauto-sdk:v4.7")
     implementation(files("./libs/aauto.aar"))
 

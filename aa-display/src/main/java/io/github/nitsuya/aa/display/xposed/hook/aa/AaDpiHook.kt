@@ -28,7 +28,6 @@ object AaDpiHook: AaHook() {
 
     override fun loadDexClass(bridge: DexKitBridge, ctx: XposedRuntimeContext) {
         val classes = bridge.findClass {
-            searchPackages = listOf("")
             matcher {
                 usingStrings {
                     add(

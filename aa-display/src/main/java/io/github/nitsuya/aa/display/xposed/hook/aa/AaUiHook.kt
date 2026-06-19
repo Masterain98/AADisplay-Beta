@@ -113,7 +113,6 @@ object AaUiHook: AaHook() {
         runtimeCtx = ctx
         targetContext = ctx.appContext ?: throw IllegalStateException("AaUiHook requires target app context")
         val classes = bridge.findClass {
-            searchPackages = listOf("")
             matcher {
                 usingStrings {
                     add(

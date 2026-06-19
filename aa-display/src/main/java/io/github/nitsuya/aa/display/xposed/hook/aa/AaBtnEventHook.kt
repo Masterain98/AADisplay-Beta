@@ -38,7 +38,7 @@ object AaBtnEventHook: AaHook() {
                     if (param.args[0] == null) return@hookBefore
                     val intentFilter = param.args[1] as IntentFilter
                     val mActions = intentFilter.getObject("mActions") as Collection<String>
-                    log(tagName,"registerReceiver->${param.args[0].javaClass.name}:${mActions.joinToString()}")
+                    log(tagName,"registerReceiver->${param.args[0]!!.javaClass.name}:${mActions.joinToString()}")
                     if (mActions.size != 1) {
                         return@hookBefore
                     }
@@ -46,7 +46,7 @@ object AaBtnEventHook: AaHook() {
                     if (!(needAction == "android.intent.action.MEDIA_BUTTON" || needAction == "android.intent.action.projected.KEY_EVENT")) {
                         return@hookBefore
                     }
-                    val clazz = param.args[0].javaClass
+                    val clazz = param.args[0]!!.javaClass
                     val clazzName = clazz.name
                     if (!isLoadHookReceive.add(clazzName)) {
                         return@hookBefore
