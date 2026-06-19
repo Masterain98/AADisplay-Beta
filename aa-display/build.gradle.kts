@@ -1,5 +1,16 @@
 import java.util.zip.ZipFile
 
+val versionConf = rootDir.resolve("version.conf").let { file ->
+    if (file.exists()) file.readLines()
+        .filter { it.isNotBlank() && !it.startsWith("#") }
+        .map { it.split("=", limit = 2).map(String::trim) }
+        .filter { it.size == 2 }
+        .associate { it[0] to it[1] }
+    else emptyMap()
+}
+val confVersionName = versionConf["VERSION_NAME"] ?: "1.0.0-dev"
+val confVersionCode = versionConf["VERSION_CODE"]?.toIntOrNull() ?: 1
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -16,8 +27,8 @@ android {
         applicationId = "com.aadisplay101.app"
         minSdk = 31
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.0.0-beta"
+        versionCode = confVersionCode
+        versionName = confVersionName
         buildConfigField("long", "BUILD_TIME", buildTime.toString())
     }
 
@@ -36,10 +47,13 @@ android {
     }
     signingConfigs {
         create("release") {
-            storeFile = file("../key.jks")
-            storePassword = System.getenv("KEY_ANDROID")
-            keyAlias = "key0"
-            keyPassword = System.getenv("KEY_ANDROID")
+            val ksPath = System.getenv("ANDROID_KEYSTORE_PATH")
+            if (ksPath != null) {
+                storeFile = file(ksPath)
+            }
+            storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: ""
+            keyPassword = System.getenv("ANDROID_KEY_PASSWORD")
             enableV1Signing = false
             enableV2Signing = false
             enableV3Signing = true
@@ -64,14 +78,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // 如果环境变量存在且签名配置有效，使用 release 签名，否则使用默认调试签名
-            if (System.getenv("KEY_ANDROID") != null) {
-                signingConfig = signingConfigs.getByName("release")
-            }
-//            proguardFiles(
-//                getDefaultProguardFile("proguard-android-optimize.txt"),
-//                "proguard-rules.pro"
-//            )
         }
 
     }
@@ -108,15 +114,13 @@ android {
     buildToolsVersion = "35.0.0"
 }
 
-tasks.register("verifyDebugXposedMetadata") {
-    dependsOn("assembleDebug")
-
+fun Task.verifyXposedMetadata(apkDirName: String) {
     doLast {
-        val apkDir = layout.buildDirectory.dir("outputs/apk/debug").get().asFile
+        val apkDir = layout.buildDirectory.dir("outputs/apk/$apkDirName").get().asFile
         val apk = apkDir.listFiles { file ->
             file.isFile && file.extension.equals("apk", ignoreCase = true)
         }?.maxByOrNull { it.lastModified() }
-            ?: error("No debug APK found in ${apkDir.absolutePath}")
+            ?: error("No $apkDirName APK found in ${apkDir.absolutePath}")
 
         val requiredEntries = listOf(
             "META-INF/xposed/java_init.list",
@@ -136,6 +140,16 @@ tasks.register("verifyDebugXposedMetadata") {
         }
         println("Verified libxposed metadata in ${apk.name}: ${requiredEntries.joinToString()}")
     }
+}
+
+tasks.register("verifyDebugXposedMetadata") {
+    dependsOn("assembleDebug")
+    verifyXposedMetadata("debug")
+}
+
+tasks.register("verifyReleaseXposedMetadata") {
+    dependsOn("assembleRelease")
+    verifyXposedMetadata("release")
 }
 
 afterEvaluate {

@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths: [version.conf]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read version.conf
+        id: version
+        run: |
+          while IFS='=' read -r key value; do
+            key=$(echo "$key" | xargs)
+            value=$(echo "$value" | xargs)
+            [[ -z "$key" || "$key" == \#* ]] && continue
+            echo "${key}=${value}" >> "$GITHUB_OUTPUT"
+          done < version.conf
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Restore keystore
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "$RUNNER_TEMP/release-keystore.jks"
+
+      - name: Build release APK
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release-keystore.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew :aa-display:assembleRelease
+
+      - name: Verify Xposed metadata
+        run: ./gradlew :aa-display:verifyReleaseXposedMetadata
+
+      - name: Create draft release and upload APK
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ steps.version.outputs.VERSION_NAME }}"
+          APK=$(find aa-display/build/outputs/apk/release -name '*.apk' | head -1)
+          PRERELEASE_FLAG=""
+          if [ "${{ steps.version.outputs.PRERELEASE }}" = "true" ]; then
+            PRERELEASE_FLAG="--prerelease"
+          fi
+          gh release create "$TAG" \
+            --title "AADisplay-101 ${{ steps.version.outputs.VERSION_NAME }}" \
+            --notes "Release ${{ steps.version.outputs.VERSION_NAME }}" \
+            --draft \
+            $PRERELEASE_FLAG \
+            "$APK"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ steps.version.outputs.VERSION_NAME }}"
+          gh release edit "$TAG" --draft=false

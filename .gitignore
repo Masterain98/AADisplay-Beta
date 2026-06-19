@@ -13,3 +13,7 @@ local.properties
 /CLAUDE.md
 aa-display/CLAUDE.md
 .claude/
+
+# Keystore files (signing credentials managed via GitHub Secrets)
+*.jks
+*.keystore
