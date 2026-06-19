@@ -10,12 +10,12 @@ plugins {
 
 android {
     val buildTime = System.currentTimeMillis()
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.aadisplay101.app"
         minSdk = 31
-        targetSdk = 36
+        targetSdk = 37
         versionCode = 1
         versionName = "1.0.0-beta"
         buildConfigField("long", "BUILD_TIME", buildTime.toString())
