@@ -1,12 +1,15 @@
 # AADisplay-101
 
-[![AADisplay-101](https://img.shields.io/badge/AADisplay--101-Project-blue?logo=github)](https://github.com/bikekoala/AADisplay-Beta)
+[![AADisplay-101](https://img.shields.io/badge/AADisplay--101-Project-blue?logo=github)](https://github.com/Masterain98/AADisplay-101)
 ![Xposed Module](https://img.shields.io/badge/Xposed-Module-blue)
 ![Android SDK](https://img.shields.io/badge/Android%20SDK-min%2031%20%C2%B7%20target%2037-brightgreen?logo=android)
 
 > **Note:** This project is largely a **vibe programming** product — generated and iterated through extensive LLM-assisted development rather than traditional human-written code. Use with appropriate caution.
 
 An Xposed / LSPosed module that mirrors almost any app onto the Android Auto screen via a VirtualDisplay. Migrated to **libxposed API 101** with support for Android 17 (API 37).
+
+> [!IMPORTANT]
+> AADisplay-101 has GitHub Immutable Releases feature enabled. All APK releases are exclusively built and published through GitHub Actions CI — they cannot be manually modified, ensuring software supply chain security.
 
 ## Upstream
 

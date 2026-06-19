@@ -162,11 +162,38 @@
         <Preference
             app:key="GithubLink"
             app:title="Source code &amp; updates"
-            app:summary="github.com/bikekoala/AADisplay-Beta"
+            app:summary="github.com/Masterain98/AADisplay-101"
             app:iconSpaceReserved="false">
             <intent
                 android:action="android.intent.action.VIEW"
-                android:data="https://github.com/bikekoala/AADisplay-Beta"/>
+                android:data="https://github.com/Masterain98/AADisplay-101"/>
+        </Preference>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:key="CategoryCredit"
+        app:title="Credit"
+        app:iconSpaceReserved="false">
+
+        <Preference
+            app:key="UpstreamKoala"
+            app:title="koalaauto/AADisplay-Beta"
+            app:summary="Direct upstream fork"
+            app:iconSpaceReserved="false">
+            <intent
+                android:action="android.intent.action.VIEW"
+                android:data="https://github.com/koalaauto/AADisplay-Beta"/>
+        </Preference>
+
+        <Preference
+            app:key="UpstreamNitsuya"
+            app:title="Nitsuya/AADisplay"
+            app:summary="Original project"
+            app:iconSpaceReserved="false">
+            <intent
+                android:action="android.intent.action.VIEW"
+                android:data="https://github.com/Nitsuya/AADisplay"/>
         </Preference>
 
     </PreferenceCategory>
