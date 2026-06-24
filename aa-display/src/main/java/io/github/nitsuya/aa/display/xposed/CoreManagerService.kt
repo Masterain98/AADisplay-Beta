@@ -10,6 +10,7 @@ import io.github.nitsuya.aa.display.model.RecentTask
 import io.github.nitsuya.aa.display.ui.aa.AaVirtualDisplayAdapter
 import io.github.nitsuya.aa.display.ui.window.DisplayWindow
 import io.github.nitsuya.aa.display.util.AADisplayConfig
+import io.github.nitsuya.aa.display.util.AADisplayLogger
 import io.github.nitsuya.aa.display.xposed.util.Instances
 import io.github.nitsuya.template.bases.runIO
 import io.github.nitsuya.template.bases.runMain
@@ -55,8 +56,18 @@ class CoreManagerService private constructor(): ICoreManager.Stub() {
         private var mDisplayWindow: DisplayWindow? = null
         private var mAaVirtualDisplayAdapter: AaVirtualDisplayAdapter? = null
 
+        /**
+         * Synchronous display power toggle for use from power button hook.
+         * Returns true if SurfaceControl succeeded, false if it failed.
+         */
+        fun toggleDisplayPowerSync(): Boolean {
+            return mDisplayWindow?.toggleDisplayPower() ?: false
+        }
+
         @SuppressLint("UnspecifiedRegisterReceiverFlag")
         fun systemReady() {
+            AADisplayLogger.enabled = AADisplayConfig.DebugInputInjectionLog.get(config)
+            log(TAG, "AADisplayLogger.enabled=${AADisplayLogger.enabled}")
 //            systemContext.registerReceiver(CoreBroadcastReceiver, IntentFilter().apply {
 //                addAction("com.google.android.gearhead.ASSISTANT_STATE_CHANGED")
 //                addAction("com.google.android.apps.auto.carservice.service.impl.NEARBY_ACTION_STOP_PROJECTION")
@@ -230,6 +241,11 @@ class CoreManagerService private constructor(): ICoreManager.Stub() {
     }
 
     override fun touch(event: MotionEvent) {
+        log(TAG, "CoreManagerService.touch: action=${event.action}, " +
+            "x=${event.x}, y=${event.y}, pointerCount=${event.pointerCount}, " +
+            "adapter=${mAaVirtualDisplayAdapter != null}, " +
+            "displayId=${mAaVirtualDisplayAdapter?.mDisplayId}")
+        AADisplayLogger.log(TAG, "touch: action=${event.action}, x=${event.x}, y=${event.y}, displayId=${mAaVirtualDisplayAdapter?.mDisplayId}")
         runBlocking(Dispatchers.IO) {
 //        runMain {
             mAaVirtualDisplayAdapter?.onTouch(event)

@@ -8,6 +8,7 @@ import android.content.pm.ActivityInfo
 import android.graphics.PixelFormat
 import android.os.CountDownTimer
 import android.os.PowerManager
+import android.os.ServiceManager
 import android.provider.Settings
 import android.view.*
 import androidx.core.view.ViewCompat
@@ -20,6 +21,7 @@ import io.github.nitsuya.aa.display.databinding.WindowControllerBinding
 import io.github.nitsuya.aa.display.databinding.WindowMirrorBinding
 import io.github.nitsuya.aa.display.ui.aa.AaVirtualDisplayAdapter
 import io.github.nitsuya.aa.display.util.AADisplayConfig
+import io.github.nitsuya.aa.display.util.AADisplayLogger
 import io.github.nitsuya.aa.display.util.tryOrNull
 import io.github.nitsuya.aa.display.xposed.CoreManagerService
 import io.github.nitsuya.aa.display.xposed.TipUtil
@@ -74,6 +76,7 @@ class DisplayWindow(
     }
 
     private var mScreenOffReplaceLockScreen = AADisplayConfig.ScreenOffReplaceLockScreen.get(CoreManagerService.config)
+    private var mBlackOverlayFallback = AADisplayConfig.ScreenOffBlackOverlayFallback.get(CoreManagerService.config)
     private val mDelayDestroyTime = AADisplayConfig.DelayDestroyTime.get(CoreManagerService.config).let { value ->
         if (value < 0) 0 else value
     }
@@ -154,6 +157,9 @@ class DisplayWindow(
             doInit()
         }
         interactiveMonitor.init()
+        log(TAG, "DisplayWindow init: ScreenOffReplaceLockScreen=$mScreenOffReplaceLockScreen, " +
+            "interactive=${Instances.powerManager.isInteractive}, " +
+            "displayId=${displayAdapter.mVirtualDisplay.display.displayId}")
     }
 
     fun doInit() {
@@ -416,24 +422,227 @@ class DisplayWindow(
         }
     }
 
-    fun toggleDisplayPower(displayPower: Boolean = !mDisplayPower){
-        try {
-            if(mScreenOffReplaceLockScreen){
-                mDisplayPower = displayPower
-                if(mDisplayPower){
-                    SurfaceControlHidden.setDisplayPowerMode(SurfaceControlHidden.getInternalDisplayToken(), SurfaceControlHidden.POWER_MODE_NORMAL)
-                } else {
-                    SurfaceControlHidden.setDisplayPowerMode(SurfaceControlHidden.getInternalDisplayToken(), SurfaceControlHidden.POWER_MODE_OFF)
-                }
+    // --- Display Token Resolution (Android 17 compatible) ---
+
+    private fun resolveLegacySurfaceControlToken(): android.os.IBinder? {
+        return runCatching {
+            val sc = SurfaceControl::class.java
+            sc.methods.firstOrNull {
+                it.name == "getInternalDisplayToken" &&
+                    it.parameterCount == 0 &&
+                    android.os.IBinder::class.java.isAssignableFrom(it.returnType)
+            }?.invoke(null) as? android.os.IBinder
+        }.onFailure {
+            log(TAG, "resolveLegacySurfaceControlToken failed: ${it.message}")
+        }.getOrNull()
+    }
+
+    private fun resolveDisplayTokenViaISurfaceComposer(): android.os.IBinder? {
+        return runCatching {
+            val sfBinder = android.os.ServiceManager.getService("SurfaceFlinger")
+                ?: return null
+
+            val stubClass = Class.forName("android.gui.ISurfaceComposer\$Stub")
+            val asInterface = stubClass.getDeclaredMethod("asInterface", android.os.IBinder::class.java)
+            val composer = asInterface.invoke(null, sfBinder)
+
+            // Dump all ISurfaceComposer methods for diagnostics
+            val methods = composer.javaClass.methods.joinToString("\n") { m ->
+                "  ${m.name}(${m.parameterTypes.joinToString { it.simpleName }}) -> ${m.returnType.simpleName}"
+            }
+            log(TAG, "ISurfaceComposer methods:\n$methods")
+            AADisplayLogger.log(TAG, "ISurfaceComposer methods:\n$methods")
+
+            val getPhysicalDisplayIds = composer.javaClass.methods.firstOrNull {
+                it.name == "getPhysicalDisplayIds" &&
+                    it.parameterCount == 0 &&
+                    it.returnType == LongArray::class.java
+            }
+            log(TAG, "ISurfaceComposer.getPhysicalDisplayIds=${getPhysicalDisplayIds != null}")
+
+            val getPhysicalDisplayToken = composer.javaClass.methods.firstOrNull {
+                it.name == "getPhysicalDisplayToken" &&
+                    it.parameterCount == 1 &&
+                    it.parameterTypes[0] == java.lang.Long.TYPE &&
+                    android.os.IBinder::class.java.isAssignableFrom(it.returnType)
+            }
+            log(TAG, "ISurfaceComposer.getPhysicalDisplayToken=${getPhysicalDisplayToken != null}")
+
+            if (getPhysicalDisplayIds == null || getPhysicalDisplayToken == null) {
+                log(TAG, "ISurfaceComposer: required methods not found")
+                return null
+            }
+
+            val ids = getPhysicalDisplayIds.invoke(composer) as LongArray
+            log(TAG, "ISurfaceComposer physicalDisplayIds=${ids.joinToString()}")
+            AADisplayLogger.log(TAG, "physicalDisplayIds=${ids.joinToString()}")
+
+            val defaultPhysicalId = resolveDefaultPhysicalDisplayId()
+            log(TAG, "defaultPhysicalId=$defaultPhysicalId")
+
+            val orderedIds = if (defaultPhysicalId != null && ids.contains(defaultPhysicalId)) {
+                longArrayOf(defaultPhysicalId) + ids.filter { it != defaultPhysicalId }
             } else {
-                Instances.powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP, "${BuildConfig.APPLICATION_ID}:wakeup").apply {
-                    acquire()
-                    release()
+                ids
+            }
+
+            for (id in orderedIds) {
+                val token = getPhysicalDisplayToken.invoke(composer, id) as? android.os.IBinder
+                log(TAG, "ISurfaceComposer token for physicalId=$id = $token")
+                AADisplayLogger.log(TAG, "token for physicalId=$id = $token")
+                if (token != null) return token
+            }
+            null
+        }.onFailure {
+            log(TAG, "resolveDisplayTokenViaISurfaceComposer failed: ${it.javaClass.simpleName}: ${it.message}")
+            AADisplayLogger.log(TAG, "ISurfaceComposer failed: ${it.javaClass.simpleName}: ${it.message}")
+        }.getOrNull()
+    }
+
+    private fun resolveDefaultPhysicalDisplayId(): Long? {
+        return runCatching {
+            val dmgClass = Class.forName("android.hardware.display.DisplayManagerGlobal")
+            val getInstance = dmgClass.getDeclaredMethod("getInstance")
+            val dmg = getInstance.invoke(null)
+
+            val getDisplayInfo = dmgClass.getDeclaredMethod("getDisplayInfo", Int::class.javaPrimitiveType)
+            val info = getDisplayInfo.invoke(dmg, Display.DEFAULT_DISPLAY)
+
+            val uniqueIdField = info.javaClass.getDeclaredField("uniqueId").apply { isAccessible = true }
+            val uniqueId = uniqueIdField.get(info) as? String
+            log(TAG, "default display uniqueId=$uniqueId")
+
+            uniqueId
+                ?.substringAfter("local:", missingDelimiterValue = "")
+                ?.takeIf { it.isNotBlank() }
+                ?.toULongOrNull()
+                ?.toLong()
+        }.onFailure {
+            log(TAG, "resolveDefaultPhysicalDisplayId failed: ${it.message}")
+        }.getOrNull()
+    }
+
+    private fun resolveInternalDisplayToken(): android.os.IBinder? {
+        return resolveLegacySurfaceControlToken()
+            ?: resolveDisplayTokenViaISurfaceComposer()
+    }
+
+    private var mCachedDisplayToken: android.os.IBinder? = null
+
+    private fun getDisplayToken(): android.os.IBinder? {
+        mCachedDisplayToken?.let { return it }
+        val token = resolveInternalDisplayToken()
+        if (token != null) {
+            mCachedDisplayToken = token
+            log(TAG, "getDisplayToken resolved: $token")
+        } else {
+            log(TAG, "getDisplayToken: all methods failed")
+        }
+        return token
+    }
+
+    // --- Black Overlay Fallback ---
+
+    private var mBlackoutView: View? = null
+
+    private fun showBlackoutOverlay() {
+        if (mBlackoutView != null) return
+        val view = View(mContext).apply {
+            setBackgroundColor(android.graphics.Color.BLACK)
+            isClickable = true
+            isFocusable = false
+        }
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+                or WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                or WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+            PixelFormat.OPAQUE
+        ).apply {
+            gravity = Gravity.START or Gravity.TOP
+            layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+            screenBrightness = 0f
+            buttonBrightness = 0f
+        }
+        runCatching {
+            Instances.windowManager.addView(view, params)
+            mBlackoutView = view
+            mDisplayPower = false
+            log(TAG, "showBlackoutOverlay: fallback active")
+        }.onFailure {
+            log(TAG, "showBlackoutOverlay failed", it)
+        }
+    }
+
+    private fun hideBlackoutOverlay() {
+        val view = mBlackoutView ?: return
+        runCatching {
+            Instances.windowManager.removeView(view)
+        }.onFailure {
+            log(TAG, "hideBlackoutOverlay failed", it)
+        }
+        mBlackoutView = null
+        mDisplayPower = true
+    }
+
+    // --- toggleDisplayPower ---
+
+    fun toggleDisplayPower(displayPower: Boolean = !mDisplayPower): Boolean {
+        if (!mScreenOffReplaceLockScreen) {
+            runCatching {
+                Instances.powerManager.newWakeLock(
+                    PowerManager.PARTIAL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+                    "${BuildConfig.APPLICATION_ID}:wakeup"
+                ).apply { acquire(); release() }
+            }
+            return true
+        }
+
+        // Turning ON: always succeed
+        if (displayPower) {
+            hideBlackoutOverlay()
+            val token = getDisplayToken()
+            if (token != null) {
+                runCatching {
+                    SurfaceControlHidden.setDisplayPowerMode(token, SurfaceControlHidden.POWER_MODE_NORMAL)
+                    log(TAG, "toggleDisplayPower: NORMAL success")
+                    AADisplayLogger.log(TAG, "toggleDisplayPower: NORMAL success")
+                }.onFailure {
+                    log(TAG, "toggleDisplayPower: setDisplayPowerMode NORMAL failed", it)
+                    AADisplayLogger.log(TAG, "toggleDisplayPower: NORMAL failed: ${it.message}")
                 }
             }
-        } catch (e : Throwable){
-            log(TAG, "", e)
+            mDisplayPower = true
+            return true
         }
+
+        // Turning OFF: try SurfaceControl first
+        val token = getDisplayToken()
+        if (token != null) {
+            runCatching {
+                SurfaceControlHidden.setDisplayPowerMode(token, SurfaceControlHidden.POWER_MODE_OFF)
+                mDisplayPower = false
+                log(TAG, "toggleDisplayPower: OFF success via SurfaceControl")
+                AADisplayLogger.log(TAG, "toggleDisplayPower: OFF success via SurfaceControl")
+                return true
+            }.onFailure {
+                log(TAG, "toggleDisplayPower: setDisplayPowerMode OFF failed", it)
+                AADisplayLogger.log(TAG, "toggleDisplayPower: OFF failed: ${it.message}")
+            }
+        }
+
+        // Fallback: black overlay (only if enabled in settings)
+        if (mBlackOverlayFallback) {
+            showBlackoutOverlay()
+            return mBlackoutView != null
+        }
+
+        log(TAG, "toggleDisplayPower: all methods failed, black overlay disabled")
+        AADisplayLogger.log(TAG, "toggleDisplayPower: all methods failed, overlay disabled")
+        return false
     }
 
     private fun showController(){

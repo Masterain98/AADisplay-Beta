@@ -71,10 +71,30 @@
             app:iconSpaceReserved="false" />
 
         <rikka.material.preference.MaterialSwitchPreference
-            app:defaultValue="false"
+            app:defaultValue="true"
             app:key="ScreenOffReplaceLockScreen"
             app:title="Screen Off Only"
-            app:summary="Power key only turns off screen"
+            app:summary="Recommended: power key turns off only the phone display, keeping Android Auto input working"
+            app:iconSpaceReserved="false"/>
+
+        <rikka.material.preference.MaterialSwitchPreference
+            app:defaultValue="true"
+            app:key="ScreenOffBlackOverlayFallback"
+            app:title="Black Overlay Fallback"
+            app:summary="When SurfaceControl display power fails (e.g. Android 17), use a black overlay instead. Keeps AA input working but does not truly turn off the screen."
+            app:iconSpaceReserved="false"/>
+
+        <rikka.material.preference.MaterialSwitchPreference
+            app:defaultValue="false"
+            app:key="DebugInputInjectionLog"
+            app:title="Debug Input Injection Log"
+            app:summary="Log every touch event through the full pipeline. Enable for troubleshooting, disable for performance."
+            app:iconSpaceReserved="false"/>
+
+        <Preference
+            app:key="ExportDiagnosticLog"
+            app:title="Export Diagnostic Log"
+            app:summary="Export captured diagnostic log to file for analysis"
             app:iconSpaceReserved="false"/>
 
         <rikka.material.preference.MaterialSwitchPreference

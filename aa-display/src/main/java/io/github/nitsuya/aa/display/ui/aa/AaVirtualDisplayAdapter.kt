@@ -24,6 +24,7 @@ import io.github.nitsuya.aa.display.model.RecentTask
 import io.github.nitsuya.aa.display.model.RecentTaskInfo
 import io.github.nitsuya.aa.display.service.ShellManagerService
 import io.github.nitsuya.aa.display.util.AADisplayConfig
+import io.github.nitsuya.aa.display.util.AADisplayLogger
 import io.github.nitsuya.aa.display.util.argTypes
 import io.github.nitsuya.aa.display.util.args
 import io.github.nitsuya.aa.display.util.getObjectAs
@@ -51,6 +52,9 @@ class AaVirtualDisplayAdapter(
             BuildConfig.APPLICATION_ID,
             "com.android.launcher3"
         )
+
+        private const val INJECT_INPUT_EVENT_MODE_ASYNC = 0
+        private const val INJECT_INPUT_EVENT_MODE_WAIT_FOR_RESULT = 1
     }
 
     /** Default launch package name: the app package to launch when virtual display is created, can be null */
@@ -134,12 +138,16 @@ class AaVirtualDisplayAdapter(
         try {
             Instances.iWindowManager.apply {
                 setDisplayImePolicy(mDisplayId, AADisplayConfig.DisplayImePolicy.get(config))
-                setShouldShowWithInsecureKeyguard(mDisplayId, false)
+                setShouldShowWithInsecureKeyguard(mDisplayId, true)
                 setShouldShowSystemDecors(mDisplayId, false)
             }
         } catch (e : Throwable){
             log(TAG, "设置虚拟屏幕参数失败: ", e)
         }
+        log(TAG, "VirtualDisplay policy: displayId=$mDisplayId, " +
+            "showWithInsecureKeyguard=true, showSystemDecors=false, " +
+            "imePolicy=${AADisplayConfig.DisplayImePolicy.get(config)}")
+        AADisplayLogger.log(TAG, "VD created: displayId=$mDisplayId, imePolicy=${AADisplayConfig.DisplayImePolicy.get(config)}")
         //mDisplayWindowManager = context.createDisplayContext(mVirtualDisplay.display).getSystemService(WindowManager::class.java).apply {
         mDisplayWindowManager = context.createDisplayContext(mVirtualDisplay.display).createWindowContext(mVirtualDisplay.display, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, null).getSystemService(WindowManager::class.java).apply {
             addView(
@@ -414,9 +422,14 @@ class AaVirtualDisplayAdapter(
         )
     }
 
-    private fun injectInputEvent(event: InputEvent){
+    private fun injectInputEvent(event: InputEvent) {
         event.invokeMethod("setDisplayId", args(mDisplayId), argTypes(Integer.TYPE))
-        Instances.iInputManager.injectInputEvent(event, 0)
+        val ok = Instances.iInputManager.injectInputEvent(event, INJECT_INPUT_EVENT_MODE_WAIT_FOR_RESULT)
+        val interactive = Instances.powerManager.isInteractive
+        log(TAG, "injectInputEvent: displayId=$mDisplayId, " +
+            "interactive=$interactive, " +
+            "ok=$ok, event=$event")
+        AADisplayLogger.log(TAG, "inject: displayId=$mDisplayId, interactive=$interactive, ok=$ok, action=${(event as? MotionEvent)?.action ?: "key"}")
     }
 
     /**

@@ -179,18 +179,26 @@ object AndroidHook : BaseHook() {
             val ctx = runtimeContext
             if (!IsSystemEnv || ctx == null) return
             hookPower = runCatching {
-                ctx.hookBefore(ctx.findMethod("com.android.server.policy.PhoneWindowManager") {
-                    name == "powerPress"
-                        && parameterCount == 3
-                        && parameterTypes[0] == Long::class.javaPrimitiveType
-                        && parameterTypes[1] == Int::class.javaPrimitiveType
-                        && parameterTypes[2] == Boolean::class.javaPrimitiveType
-                }) { param ->
-                    if (!(param.args[2] as Boolean)) {
-                        CoreApi.toggleDisplayPower()
-                        param.returnEarly(null)
+                val methods = ctx.findAllMethods("com.android.server.policy.PhoneWindowManager") {
+                    name == "powerPress" && parameterCount >= 2
+                }
+                log(tagName, "Found ${methods.size} powerPress methods")
+                val method = methods.firstOrNull()
+                    ?: throw NoSuchMethodException("No powerPress method found in PhoneWindowManager")
+                log(tagName, "Hooking powerPress: params=${method.parameterTypes.map { it.simpleName }}")
+                ctx.hookBefore(method) { param ->
+                    val count = if (param.args.size > 1) param.args[1] else "?"
+                    val beganFromNonInteractive = if (param.args.size > 2) param.args[2] as? Boolean ?: false else false
+                    log(tagName, "powerPress intercepted: count=$count, beganFromNonInteractive=$beganFromNonInteractive")
+                    if (!beganFromNonInteractive) {
+                        val success = CoreManagerService.toggleDisplayPowerSync()
+                        if (success) {
+                            param.returnEarly(null)
+                        } else {
+                            log(tagName, "SurfaceControl failed, falling through to system default")
+                        }
                     } else {
-                        CoreApi.displayPower(true)
+                        CoreManagerService.toggleDisplayPowerSync()
                     }
                 }
             }.onFailure {

@@ -20,7 +20,9 @@ sealed class AADisplayConfig<T>(val key: String) {
     object VirtualDisplayHeight: IntConfig("VirtualDisplayHeight", 0)
     object AndroidAutoDpi: IntConfig("AndroidAutoDpi", 0)
     object DelayDestroyTime: IntConfig("DelayDestroyTime", 180)
-    object ScreenOffReplaceLockScreen: BooleanConfig("ScreenOffReplaceLockScreen", false)
+    object ScreenOffReplaceLockScreen: BooleanConfig("ScreenOffReplaceLockScreen", true)
+    object ScreenOffBlackOverlayFallback: BooleanConfig("ScreenOffBlackOverlayFallback", true)
+    object DebugInputInjectionLog: BooleanConfig("DebugInputInjectionLog", false)
     object CloseLauncherDashboard: BooleanConfig("CloseLauncherDashboard", true)
     object ForceRightAngle: BooleanConfig("ForceRightAngle", true)
     object DisplayImePolicy: IntConfig("DisplayImePolicy", 1) //WindowManager.DISPLAY_IME_POLICY_LOCAL:0, WindowManager.DISPLAY_IME_POLICY_FALLBACK_DISPLAY:1

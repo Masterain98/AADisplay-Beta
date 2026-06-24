@@ -93,7 +93,14 @@ object CoreManager : ICoreManager, DeathRecipient {
     }
 
     override fun touch(motionEvent: MotionEvent) {
-        getService()?.touch(motionEvent)
+        Log.i(TAG, "CoreManager.touch: action=${motionEvent.action}, " +
+            "x=${motionEvent.x}, y=${motionEvent.y}, pointerCount=${motionEvent.pointerCount}")
+        val svc = getService()
+        if (svc == null) {
+            Log.e(TAG, "CoreManager.touch: service is null")
+            return
+        }
+        svc.touch(motionEvent)
     }
 
     override fun toggleDisplayPower() {

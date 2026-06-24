@@ -179,7 +179,18 @@ class AaMainFragment : BaseFragment<FragmentAaMainBinding>(FragmentAaMainBinding
                                 CoreApi.setDisplaySurface(Surface(baseBinding.tvDisplay.surfaceTexture))
                             }
                             baseBinding.tvDisplay.surfaceTextureListener = this@AaMainFragment
+                            baseBinding.tvDisplay.isClickable = true
+                            baseBinding.tvDisplay.isFocusable = true
+                            baseBinding.tvDisplay.isFocusableInTouchMode = true
+                            baseBinding.tvDisplay.requestFocus()
+
                             baseBinding.tvDisplay.setOnTouchListener { _, e ->
+                                Log.i(TAG, "tvDisplay touch: action=${e.action}, x=${e.x}, y=${e.y}, " +
+                                    "rawX=${e.rawX}, rawY=${e.rawY}, pointerCount=${e.pointerCount}, " +
+                                    "displayId=$displayId, isForeground=$isForeground, " +
+                                    "viewAttached=${baseBinding.tvDisplay.isAttachedToWindow}, " +
+                                    "viewShown=${baseBinding.tvDisplay.isShown}, " +
+                                    "viewEnabled=${baseBinding.tvDisplay.isEnabled}")
                                 val uptimeMillis = SystemClock.uptimeMillis()
                                 if (e.action === MotionEvent.ACTION_DOWN) {
                                     repairDownTime = uptimeMillis
@@ -222,11 +233,13 @@ class AaMainFragment : BaseFragment<FragmentAaMainBinding>(FragmentAaMainBinding
     override fun onResume() {
         super.onResume()
         isForeground = true
+        Log.i(TAG, "AaMainFragment.onResume: displayId=$displayId")
     }
 
     override fun onPause() {
         super.onPause()
         isForeground = false
+        Log.i(TAG, "AaMainFragment.onPause: displayId=$displayId")
     }
 
     override fun onDestroy() {

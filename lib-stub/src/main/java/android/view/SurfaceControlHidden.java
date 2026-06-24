@@ -53,4 +53,21 @@ public class SurfaceControlHidden {
         throw new RuntimeException("Stub!");
     }
 
+    /**
+     * Get the display token for a specific physical display by its physical display ID.
+     * Available on Android 12+. On Android 16+, getInternalDisplayToken() may not exist.
+     */
+    @NonNull
+    public static IBinder getPhysicalDisplayToken(long physicalDisplayId) {
+        throw new RuntimeException("Stub!");
+    }
+
+    /**
+     * Get all physical display IDs.
+     */
+    @NonNull
+    public static long[] getPhysicalDisplayIds() {
+        throw new RuntimeException("Stub!");
+    }
+
 }
